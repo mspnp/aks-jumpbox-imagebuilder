@@ -1,0 +1,183 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "buildInVnetResourceGroupName": {
+            "type": "string",
+            "defaultValue": "rg-enterprise-networking-spokes"
+        },
+        "buildInVnetName": {
+            "type": "string",
+            "defaultValue": "vnet-hub-spoke-BU0001A0008-00"
+        },
+        "buildInVnetSubnetName": {
+            "type": "string",
+            "defaultValue": "snet-management-jumpboximagebuilder"
+        },
+        "location": {
+            "type": "string",
+            "metadata": {
+                "description": "Must be the same as the vnet"
+            }
+        },
+        "imageBuilderNetworkingRoleGuid": {
+            "type": "string",
+            "defaultValue": "4d97b98b-1d4f-4787-a291-c67834d212e7" // TODO: Extract to instructions, don't leave it like this. Fall back to Network Contributor if not provided, which is WAY more permission than necessary. This role will be granted to the managed identity, scoped to the builtInVnetName.
+        },
+        "imageBuilderImageCreationRoleGuid": {
+            "type": "string",
+            "defaultValue": "b24988ac-6180-42a0-ab88-20f7382dd24c" // TODO: Extract to instructions, don't leave it like this. Fall back to Contributor if not provided, which is WAY more permission than necessary. This role will be granted to the managed identity, scoped to imageResourceGroupName.
+        },
+        "imageTemplateName": {
+            "type": "string",
+            "defaultValue": "[concat('aks-opsImgTmpl-', utcNow('yyyyMMddTHHmmss'))]"
+        },
+        "imageDestinationResourceGroupName": {
+            "type": "string"
+        },
+        "imageName": {
+            "type": "string",
+            "defaultValue": "[concat('vmimg-aks-opsjb-', utcNow('yyyyMMddTHHmmss'))]"
+        }
+    },
+    "variables": {
+        "builtInSubnetResourceId": "[resourceId(parameters('buildInVnetResourceGroupName'), 'Microsoft.Network/virtualNetworks/subnets', parameters('buildInVnetName'), parameters('buildInVnetSubnetName'))]",
+        "builtInVNetResourceId": "[resourceId(parameters('buildInVnetResourceGroupName'), 'Microsoft.Network/virtualNetworks', parameters('buildInVnetName'))]",
+        "aibManagedIdentityName": "[concat('mi-aks-jumpbox-imagebuilder-', uniqueString(resourceGroup().id))]",
+        "role": {
+            "customImageCreatorRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('imageBuilderImageCreationRoleGuid'))]",
+            "imageBuilderNetworkingRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('imageBuilderNetworkingRoleGuid'))]"
+        },
+        "networkRoleAssignmentName": "[guid(variables('builtInVNetResourceId'), variables('role').imageBuilderNetworkingRole, resourceGroup().id, variables('aibManagedIdentityName'))]",
+        "imageCreationRoleAssignmentName": "[guid(parameters('imageDestinationResourceGroupName'), variables('role').customImageCreatorRole, resourceGroup().id, variables('aibManagedIdentityName'))]"
+    },
+    "resources": [
+        {
+            "name": "[variables('aibManagedIdentityName')]",
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2018-11-30",
+            "location": "[parameters('location')]",
+            "comments": "Azure Image Builder (AIB) executes as this identity."
+        },
+        {
+            "name": "applyAibNetworkRoleToVnet",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2020-06-01",
+            "resourceGroup": "[parameters('buildInVnetResourceGroupName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('aibManagedIdentityName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "name": "[concat(parameters('buildInVnetName'), '/Microsoft.Authorization/', variables('networkRoleAssignmentName'))]",
+                            "type": "Microsoft.Network/virtualNetworks/providers/roleAssignments",
+                            "apiVersion": "2020-04-01-preview",
+                            "comments": "Grants AIB required networking permissions. Validated at image template creation time.",
+                            "properties": {
+                                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('aibManagedIdentityName'))).principalId]",
+                                "roleDefinitionId": "[variables('role').imageBuilderNetworkingRole]",
+                                "principalType": "ServicePrincipal"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "applyAibImageWriterRoleToDestinationRg",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2020-06-01",
+            "resourceGroup": "[parameters('imageDestinationResourceGroupName')]",
+            "dependsOn": [
+                "[resourceId(parameters('buildInVnetResourceGroupName'), 'Microsoft.Resources/deployments', 'applyAibNetworkRoleToVnet')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "name": "[variables('imageCreationRoleAssignmentName')]",
+                            "type": "/Microsoft.Authorization/roleAssignments",
+                            "apiVersion": "2020-04-01-preview",
+                            "comments": "Grants AIB required permissions to write final jumpbox image in designated resource group.",
+                            "properties": {
+                                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('aibManagedIdentityName'))).principalId]",
+                                "roleDefinitionId": "[variables('role').customImageCreatorRole]",
+                                "principalType": "ServicePrincipal"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "[parameters('imageTemplateName')]",
+            "type": "Microsoft.VirtualMachineImages/imageTemplates",
+            "apiVersion": "2020-02-14",
+            "location": "[parameters('location')]",
+            "comments": "This is the image spec for our jumpbox. This template can be used to build VM images as needed.",
+            "dependsOn": [
+                "[resourceId(parameters('buildInVnetResourceGroupName'), 'Microsoft.Resources/deployments', 'applyAibNetworkRoleToVnet')]",
+                "[resourceId(parameters('imageDestinationResourceGroupName'), 'Microsoft.Resources/deployments', 'applyAibImageWriterRoleToDestinationRg')]"
+            ],
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('aibManagedIdentityName'))]": {}
+                }
+            },
+            "properties": {
+                "buildTimeoutInMinutes": 60,
+                "vmProfile": {
+                    "osDiskSizeGB": 32,
+                    "vmSize": "Standard_DS1_v2",
+                    "vnetConfig": {
+                        "subnetId": "[variables('builtInSubnetResourceId')]"
+                    }
+                },
+                "source": {
+                    "type": "PlatformImage",
+                    "publisher": "Canonical",
+                    "offer": "UbuntuServer",
+                    "sku": "18.04-LTS",
+                    "version": "latest"
+                },
+                "distribute": [
+                    {
+                        "type": "ManagedImage",
+                        "runOutputName": "managedImageTarget",
+                        "imageId": "[resourceId(parameters('imageDestinationResourceGroupName'), 'Microsoft.Compute/images', parameters('imageName'))]",
+                        "location": "[parameters('location')]"
+                    }
+                ],
+                "customize": [
+                ]
+            }
+        }
+    ],
+    "outputs": {
+        "imageTemplateName": {
+            "type": "string",
+            "value": "[parameters('imageTemplateName')]"
+        },
+        "imageName": {
+            "type": "string",
+            "value": "[parameters('imageName')]"
+        },
+        "distributedImageResourceId": {
+            "type": "string",
+            "value": "[reference(parameters('imageTemplateName')).distribute[0].imageId]"
+        },
+        "builderIdentityResource": {
+            "type": "object",
+            "value": "[reference(variables('aibManagedIdentityName'))]"
+        }
+    }
+}
