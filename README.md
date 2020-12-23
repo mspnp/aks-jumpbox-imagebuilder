@@ -14,7 +14,7 @@ Azure Image Builder Service supports hosting the image building process in a sub
 
 ## Deployment Steps
 
-### Network Selection
+### Prerequisites
 
 1. **Select or build a suitable subnet.** This subnet needs to meet the following requirements.
     1. The subnet must be no smaller than a `/28`, and must have **four IP addresses available**.
@@ -61,9 +61,26 @@ Azure Image Builder Service supports hosting the image building process in a sub
 1. **Ensure you're okay with the Azure Marketplace Ubuntu 18.04 LTS as your base image.** Azure Image Builder supports more base OS images than the one selected in this implementation (you can even bring your own), however images other than the one selected here have not been evaluated with regard to the above networking restrictions. If you choose to use another base image, you may need to adjust various elements of these instructions.
 1. **Ensure you're okay with an "Infrastructure Resource Group" being created on your behalf.** AIB Service will create, be assigned permissions to, and delete a workspace resource group that is prefixed with `IT_`. This is a requirement for this service and is much like the infrastructure resource group for AKS.
 
-### Deploying
+### Deploying Azure Image Builder Service
 
-1. Register the preview feature
+1. Register the preview feature. To use Azure Image Builder, you need to [register the feature](https://docs.microsoft.com/azure/virtual-machines/linux/image-builder#register-the-features).
+
+   ```azurecli
+   az feature register --namespace Microsoft.VirtualMachineImages --name VirtualMachineTemplatePreview
+   ```
+
+   Wait for "Registered" state, this may take 10 minutes. You can check this status by running the following command.
+
+   ```azurecli
+   az feature show --namespace Microsoft.VirtualMachineImages --name VirtualMachineTemplatePreview
+   ```
+
+   Once registered, re-register the Microsoft.VirtualMachineImages provider.
+
+   ```azurecli
+   az provider register -n Microsoft.VirtualMachineImages
+   ```
+
 1. Ensure your target subnet matches the spec above.
 1. Ensure your permissions match the spec above.
 1. Deploy Azure RBAC Custom Roles (Optional, but highly recommended)
