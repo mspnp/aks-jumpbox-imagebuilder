@@ -20,7 +20,7 @@ Azure Image Builder Service supports hosting the image building process in a sub
 
 ### Prerequisites
 
-1. **Select or build a suitable subnet.** This subnet needs to meet the following requirements.
+1. **Plan your subnet.** This subnet needs to meet the following requirements.
     1. The subnet must be no smaller than a `/28`, and must have **four IP addresses available**.
 
        The IPs will be allocated for the following purposes:
@@ -64,9 +64,9 @@ Azure Image Builder Service supports hosting the image building process in a sub
     |Source      |Protocol:Port |Target FQDNs                 |Reason   |
     |------------|--------------|-----------------------------|---------|
     |Subnet CIDR | HTTPS:`443`  | `*.blob.core.windows.net` | AIB will dynamically create a blob storage account when an image is being built. Its operation logs will be stored there along with other runtime requirements, and the final image will be staged there as well. It's not possible to know the name of this storage account ahead of time to make this rule more specific. |
-    |Subnet CIDR | HTTPS:`443` | _as needed_        | Any endpoints your image's configuration specification uses as part of the build process. If possible, bring these external dependencies into a resource endpoint that you manage for maximum control.  |
+    |Subnet CIDR | _as needed_  | _as needed_        | Any endpoints your image's configuration specification uses as part of the build process. If possible, bring these external dependencies into a resource endpoint that you manage for maximum control.  |
 
-    For the image built by this repo's contents, your NVA does not need to allow any other _as needed_ outbound access. There are a few additional HTTPS connections made while the transient AIB VMs boot (e.g. `api.snapcraft.io`, `entropy.ubunutu.com`, `changelogs.ubunutu.com`). Those are safe to block and will not prevent this process from functioning. If you don't block UDP connections at the subnet's NSG, you'll also be blocking NTP (`UDP`:`123`) traffic with the above rules. Unless you have a specific reason to allow it, this too is safe to block. NTP is invoked as the transient AIB VMs boot.
+    For the image built by this repo's contents, your NVA does not need to allow any other _as needed_ outbound access. There are a few additional HTTPS connections made while the transient AIB VMs boot (e.g. `api.snapcraft.io`, `entropy.ubunutu.com`, `changelogs.ubunutu.com`). Unless you have a specific reason to allow it, those are safe to block and will not prevent this process from functioning. If you don't block UDP connections at the subnet's NSG, you'll also be blocking NTP (`UDP`:`123`) traffic with the above rules. Unless you have a specific reason to allow it, this too is safe to block. NTP is invoked as the two transient AIB VMs boot.
 1. Ensure you have **sufficient Azure permissions**.
 
     | Role      | Scope      | Reason |
@@ -96,7 +96,12 @@ Azure Image Builder Service supports hosting the image building process in a sub
    az provider register -n Microsoft.VirtualMachineImages
    ```
 
-1. Ensure your target subnet matches the spec above.
+1. **Select (or create) a subnet** that will be used to hold the AIB Service Proxy VM and Packer VM. This subnet needs to align with the requirements detailed above. This subnet does NOT need access to your AKS cluster. You'll need the following information.
+
+   * Subnet's Name (e.g. `snet-imagebuilder-compute`)
+   * Subnet's VNet Name (e.g. `vnet-imagebuilder`)
+   * Subnet Resource Group Name (e.g. `rg-enterprise-networking-spokes`)
+
 1. Ensure your permissions match the spec above.
 1. Clone Repo
 1. Deploy Azure RBAC Custom Roles (Optional, but highly recommended)
