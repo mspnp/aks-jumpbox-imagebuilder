@@ -164,6 +164,66 @@
                     }
                 ],
                 "customize": [
+                    {
+                        "type": "Shell",
+                        "name": "Install Update Installed Packages",
+                        "inline": [
+                            "echo \"Starting apt-get update/dist-upgrade\"",
+                            "sudo apt-get -yq update",
+                            "sudo apt-get -yq dist-upgrade",
+                            "echo \"Completed apt-get update/dist-upgrade\""
+                        ]
+                    },
+                    {
+                        "type": "Shell",
+                        "name": "Install Azure CLI",
+                        "inline": [
+                            "echo \"Starting Azure CLI install\"",
+                            "curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash",
+                            "echo \"Completed Azure CLI install\""
+                        ]
+                    },
+                    {
+                        "type": "Shell",
+                        "name": "Install Azure CLI extensions",
+                        "inline": [
+                            "echo \"Starting AZ CLI extension add\"",
+                            "sudo az extension add -n aks-preview",
+                            "sudo az extension add -n azure-devops",
+                            "sudo az extension add -n privatedns",
+                            "echo \"Completed AZ CLI extension add\""
+                        ]
+                    },
+                    {
+                        "type": "Shell",
+                        "name": "Install kubectl and kubelogin",
+                        "inline": [
+                            "echo \"Starting kubectl install\"",
+                            "sudo az aks install-cli",
+                            "echo \"Completed kubectl install\""
+                        ]
+                    },
+                    {
+                        "type": "Shell",
+                        "name": "Install helm",
+                        "inline": [
+                            "echo \"Starting helm install\"",
+                            "curl -s https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash",
+                            "echo \"Completed helm install\""
+                        ]
+                    },
+                    {
+                        "type": "Shell",
+                        "name": "Install terraform",
+                        "inline": [
+                            "echo \"Starting terraform install\"",
+                            "sudo apt-get -yq install unzip",
+                            "curl -LO https://releases.hashicorp.com/terraform/0.14.3/terraform_0.14.3_linux_amd64.zip",
+                            "sudo unzip terraform_0.14.3_linux_amd64.zip -d /usr/local/bin",
+                            "rm -f terraform_0.14.3_linux_amd64.zip",
+                            "echo \"Completed terraform install\""
+                        ]
+                    }
                 ]
             }
         }

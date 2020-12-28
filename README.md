@@ -45,7 +45,8 @@ The Azure Image Builder service supports hosting the image building process in a
 
         | Source         | Source Port | Destination    | Destination Port | Protocol    | Action | Reason   |
         |----------------|-------------|----------------|------------------|-------------|--------|----------|
-        | VirtualNetwork | *           | Internet       | `443`            | TCP         | Allow  | For AIB Proxy VM to communicate to Azure Management APIs & Azure Storage (for logs and VHD image). This traffic can be restricted further in your egress firewall solution. |
+        | VirtualNetwork | *           | Internet       | `443`            | TCP         | Allow  | For AIB Proxy VM to communicate to Azure Management APIs & Azure Storage (for logs and VHD image). And for Packer VM to install tooling. This traffic can be optionally restricted further in your egress firewall solution. |
+        | VirtualNetwork | *           | Internet       | `80`             | TCP         | Allow  | For Packer VM to handle apt-get update/upgrade/install requests. This traffic can be optionally restricted further in your egress firewall solution. |
         | VirtualNetwork | *           | VirtualNetwork | `22`             | TCP         | Allow  | For AIB Proxy VM to connect to Packer VM via SSH to initiate image build. |
         | VirtualNetwork | *           | _as needed_    | _as needed_      | _as needed_ | Allow  | For Packer VM to access any additional resources your Packer specification uses as part of the build process |
         | Any            | *           | Any            | *                | Any         | Deny   | Block all other outbound traffic |
@@ -62,12 +63,26 @@ The Azure Image Builder service supports hosting the image building process in a
    1. The subnet must be located in one of the following regions: East US, East US 2, West Central US, West US, West US 2, North Europe, West Europe.
 1. **Your subnet's _egress_ firewall _(if any)_ must be at least as permissive as the following.** This is in addition to the built-in ["Azure infrastructure FQDNs" rule that is found in Azure Firewall](https://docs.microsoft.com/azure/firewall/infrastructure-fqdns).
 
-    | Source      | Protocol:Port | Target FQDNs              | Reason  |
-    |-------------|---------------|---------------------------|---------|
-    | Subnet CIDR | HTTPS:`443`   | `*.blob.core.windows.net` | AIB will dynamically create a blob storage account when an image is being built. The AIB operation logs will be stored in that storage account. Along with other transient runtime usage, and the final image will be staged in there as well. It's not possible to know the name of this storage account ahead of time to make this rule more specific. |
-    | Subnet CIDR | _as needed_   | _as needed_               | Any endpoints your image's configuration specification uses as part of the build process. |
+    | Source      | Protocol:Port | Target FQDNs                         | Reason  |
+    |-------------|---------------|--------------------------------------|---------|
+    | Subnet CIDR | HTTPS:`443`   | `*.blob.core.windows.net`            | AIB will dynamically create a blob storage account when an image is being built. The AIB operation logs will be stored in that storage account. Along with other transient runtime usage, and the final image will be staged in there as well. It's not possible to know the name of this storage account ahead of time to make this rule more specific. |
+    | Subnet CIDR | HTTPS:`443`   | `management.azure.com`               | Allows AIB VMs to communicate with Azure Management APIs |
+    | Subnet CIDR | HTTP:`80`     | `azure.archive.ubuntu.com`           | Allows Packer VM to run apt-get commands      |
+    | Subnet CIDR | HTTP:`80`     | `archive.ubuntu.com`                 | Allows Packer VM to run apt-get commands      |
+    | Subnet CIDR | HTTP:`80`<br>HTTPS:`443`  | `packages.microsoft.com` | Allows Packer VM to run apt-get commands      |
+    | Subnet CIDR | HTTP:`80`     | `security.ubuntu.com`                | Allows Packer VM to run apt-get commands      |
+    | Subnet CIDR | HTTPS:`443`   | `azurecliprod.blob.core.windows.net` | Allows Packer VM to get az cli install script |
+    | Subnet CIDR | HTTPS:`443`   | `aka.ms`                             | Allows Packer VM to get az cli install script |
+    | Subnet CIDR | HTTPS:`443`   | `storage.googleapis.com`             | Allows Packer VM to get kubectl               |
+    | Subnet CIDR | HTTPS:`443`   | `github.com`                         | Allows Packer VM to get kubelogin             |
+    | Subnet CIDR | HTTPS:`443`   | `raw.githubusercontent.com`          | Allows Packer VM to get helm install script   |
+    | Subnet CIDR | HTTPS:`443`   | `get.helm.sh`                        | Allows Packer VM to get helm                  |
+    | Subnet CIDR | HTTPS:`443`   | `releases.hashicorp.com`             | Allows Packer VM to get terraform             |
+    | Subnet CIDR | _as needed_   | _as needed_                          | Any endpoints your image's configuration specification uses as part of the build process. |
 
     For the image built by this repo's specification, your NVA does not need to allow any other _as needed_ outbound access. There are a few additional HTTPS connections made while the two transient AIB VMs boot (e.g. `api.snapcraft.io`, `entropy.ubunutu.com`, `changelogs.ubunutu.com`). Unless you have a specific reason to allow them, those are safe to block and will not prevent this process from functioning. If you don't block UDP connections at the subnet's NSG, you'll also be blocking NTP (`UDP`:`123`) traffic with the above rules. Unless you have a specific reason to allow it, this too is safe to block. NTP is invoked as the two transient AIB VMs boot.
+
+    Note, because we're applying least privileged network access here, these rules might become out of date. If you're having network access issues while building your image, check that you're not blocking a new endpoint that's necessary to open.
 1. Ensure you have **sufficient Azure permissions**.
 
     | Action                               | Scope(s)                                       | Reason |
@@ -202,6 +217,7 @@ The Azure Image Builder service supports hosting the image building process in a
    ```bash
    export IMAGE_TEMPLATE_NAME=$(az TODO)
 
+   # This command may take up to 20 minutes to execute.
    az resource invoke-action --resource-group ${RESOURCE_GROUP_AIB} --resource-type Microsoft.VirtualMachineImages/imageTemplates -n ${IMAGE_TEMPLATE_NAME} --action Run
    ```
 
