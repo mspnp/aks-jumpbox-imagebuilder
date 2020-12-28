@@ -189,8 +189,6 @@
                         "inline": [
                             "echo \"Starting AZ CLI extension add\"",
                             "sudo az extension add -n aks-preview",
-                            "sudo az extension add -n azure-devops",
-                            "sudo az extension add -n privatedns",
                             "echo \"Completed AZ CLI extension add\""
                         ]
                     },

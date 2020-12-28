@@ -125,6 +125,12 @@ The Azure Image Builder service supports hosting the image building process in a
 
    An example of a network that satisfies all networking requirements and is maximally locked down can be found in the !!!TODO LINK TO REGULATED AKS WORK!!!. If you deploy that example up and through the "Networking" steps, you'll have a subnet, NSG, and egress firewall you can use as a starting point for the remaining steps.
 
+   **To simply try this out in a pre-production environment without added network security, you can simply choose/create a `/28` (or larger) subnet that has no associated NSG or outbound egress firewall rules.**
+
+   ```bash
+   az network vnet create -g rg-enterprise-networking-spokes -n vnet-imagebuilder --address-prefix 10.0.0.0/28 --subnet-name snet-imagebuilder --location eastus2
+   ```
+
 1. **Clone this repo locally.** _Optional._
 
    This will allow you to edit the `azuredeploy.parameters.json` file to include your specific values.
