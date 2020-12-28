@@ -16,7 +16,7 @@
             "type": "Microsoft.Authorization/roleDefinitions",
             "apiVersion": "2018-01-01-preview",
             "properties": {
-                "roleName": "[[Custom]] Azure Image Builder Service Networking Role",
+                "roleName": "[[Custom]] Azure Image Builder Service Network Joiner",
                 "type": "CustomRole",
                 "assignableScopes": [
                     "[subscription().id]"
@@ -40,7 +40,7 @@
             "type": "Microsoft.Authorization/roleDefinitions",
             "apiVersion": "2018-01-01-preview",
             "properties": {
-                "roleName": "[[custom]] Azure Image Builder Service Image Creation Role",
+                "roleName": "[[custom]] Image Contributor",
                 "type": "CustomRole",
                 "assignableScopes": [
                     "[subscription().id]"

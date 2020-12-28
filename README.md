@@ -12,7 +12,7 @@ These jumpboxes are used at various points in the lifecycle of a cluster; most n
 
 While these instructions are targeting the building of a general-purpose AKS jumpbox VM image, these instructions could be referenced for other VM image purposes (such as build agents). These instructions do NOT address pushing images to a Shared Image Gallery, using Gen-2 VMs, or any other features of the Azure Image Builder service. To see the full features of the service, [review the service's documentation](https://docs.microsoft.com/azure/virtual-machines/image-builder-overview).
 
-## Isolated Build Network
+## Isolated build network
 
 The Azure Image Builder service supports hosting the image building process in a subnet that you bring. This feature allows you to generate the images within the security constraints of your own network; providing inbound & outbound network controls. It also allows you to access otherwise network-restricted resources you wish to include in your final image. This specific AKS jumpbox implementation is built around this bring-your-own-subnet model and provides no instructions for public network model.
 
@@ -22,13 +22,12 @@ The Azure Image Builder service supports hosting the image building process in a
    1. The subnet must be no smaller than a `/28`, and must have **four IP addresses available**.
 
       <details>
-         <summary>:mag: IP usage details</summary>
+      <summary>:mag: IP usage details</summary>
 
-          * Azure Load Balancer (Internal/Standard)
-          * NIC attached to the AIB Proxy VM (Orchestrates the building of the image.)
-          * NIC for PrivateLink (Allows connectivity between the AIB Service and the AIB Proxy VM.)
-          * NIC attached to the Packer VM (Used to build the final image.)
-
+      * Azure Load Balancer (Internal/Standard)
+      * NIC attached to the AIB Proxy VM (Orchestrates the building of the image.)
+      * NIC for PrivateLink (Allows connectivity between the AIB Service and the AIB Proxy VM.)
+      * NIC attached to the Packer VM (Used to build the final image.)
       </details>
 
    1. The subnet may have a Network Security Group (NSG) applied to it as long as it is at least as permissive as the following:
@@ -66,31 +65,31 @@ The Azure Image Builder service supports hosting the image building process in a
     | Source      | Protocol:Port | Target FQDNs              | Reason  |
     |-------------|---------------|---------------------------|---------|
     | Subnet CIDR | HTTPS:`443`   | `*.blob.core.windows.net` | AIB will dynamically create a blob storage account when an image is being built. The AIB operation logs will be stored in that storage account. Along with other transient runtime usage, and the final image will be staged in there as well. It's not possible to know the name of this storage account ahead of time to make this rule more specific. |
-    | Subnet CIDR | _as needed_   | _as needed_               | Any endpoints your image's configuration specification uses as part of the build process. If possible, bring these external dependencies into a resource endpoint that you manage for maximum control. |
+    | Subnet CIDR | _as needed_   | _as needed_               | Any endpoints your image's configuration specification uses as part of the build process. |
 
     For the image built by this repo's specification, your NVA does not need to allow any other _as needed_ outbound access. There are a few additional HTTPS connections made while the two transient AIB VMs boot (e.g. `api.snapcraft.io`, `entropy.ubunutu.com`, `changelogs.ubunutu.com`). Unless you have a specific reason to allow them, those are safe to block and will not prevent this process from functioning. If you don't block UDP connections at the subnet's NSG, you'll also be blocking NTP (`UDP`:`123`) traffic with the above rules. Unless you have a specific reason to allow it, this too is safe to block. NTP is invoked as the two transient AIB VMs boot.
 1. Ensure you have **sufficient Azure permissions**.
 
     | Action                               | Scope(s)                                       | Reason |
     |--------------------------------------|------------------------------------------------|--------|
-    | Ability to create custom azure roles | Subscription                                   | Optional. Used to define least-privileges on the AIB service's managed identity   |
-    | Ability to create role assignments   | Target Virtual Network<br />Final Image Subnet | Used to assign Azure RBAC roles the AIB service's managed identity, scoped to the virtual network and a destination resource group. |
-    | Ability to resource groups           | Subscription                                   | Optional. Needed if new resource groups are created for this (vs reusing existing resource groups) |
+    | Ability to create custom azure roles | Subscription                                   | Optional. Used to define least-privileges on the AIB service's managed identity. |
+    | Ability to create role assignments   | Target Virtual Network<br />Final Image Subnet | Used to assign Azure RBAC roles to the AIB service's managed identity. |
+    | Ability to create resource groups    | Subscription                                   | Optional. Needed if new resource groups are created for this. |
     | Ability to register preview features | Subscription                                   | While AIB is in preview, needed to enable the service. |
     | Contributor                          | Resource Group (with AIB service resources)    | Deploy AIB service resources such as a Managed Identity and Virtual Machine Image Template |
 1. **Ensure you accept the risk of preview features**. Azure Image Builder Service is currently in _public preview_ and, as with any preview, the service does not come with support, is subject to breaking changes, and supporting material (such as this repo) is maintained in low-priority manor. For more information, see [Supplemental Terms of Use for Microsoft Azure Previews](https://azure.microsoft.com/support/legal/preview-supplemental-terms/).
 1. **Ensure you're okay with the Azure Marketplace Ubuntu 18.04 LTS as your base image.** Azure Image Builder supports more base OS images than the one selected in this implementation, however images other than the one selected here have not been evaluated with regard to the above networking restrictions. If you choose to use a different base image, you may need to adjust various elements of these instructions.
-1. **Ensure you're okay with an "Infrastructure Resource Group" being created on your behalf.** The Azure Image Builder service will create, be assigned permissions to, and delete a "infrastructure" resource group that is prefixed with `IT_`. This is a requirement for this service and is much like the infrastructure resource group for AKS. It will be in existence as long as you keep the image template deployed.
+1. **Ensure you're okay with an "Infrastructure Resource Group" being created on your behalf.** The Azure Image Builder service will create, be assigned permissions to, and delete a "infrastructure" resource group that is prefixed with `IT_`. This is a requirement for this service and is much like the infrastructure (`MC_`) resource group for AKS. It will be in existence as long as you keep the image template deployed.
 
-## :rocket: Deploy Azure Image Builder Service
+## :rocket: Deploy Azure Image Builder service
 
-1. Register the preview feature. To use Azure Image Builder, you need to [register the feature](https://docs.microsoft.com/azure/virtual-machines/linux/image-builder#register-the-features).
+1. **Enable the Azure Image Builder service** on your subscription. While the Azure Image Builder is in preview, you need to [register the feature](https://docs.microsoft.com/azure/virtual-machines/linux/image-builder#register-the-features).
 
    ```bash
    az feature register --namespace Microsoft.VirtualMachineImages --name VirtualMachineTemplatePreview
    ```
 
-   Wait for the feature to be in the "Registered" state; this may take 10 minutes. You can check this status by running the following command.
+   Wait for the feature to be in the "Registered" state; this may take up to 15 minutes. You can check this status by running the following command.
 
    ```bash
    az feature show --namespace Microsoft.VirtualMachineImages --name VirtualMachineTemplatePreview
@@ -102,14 +101,14 @@ The Azure Image Builder service supports hosting the image building process in a
    az provider register -n Microsoft.VirtualMachineImages
    ```
 
-1. **Select (or create) a subnet.** that will be used to hold the networking components for the AIB service Proxy VM and Packer VM. This subnet needs to align with the requirements detailed above (or be more permissive). This subnet does NOT need access to any AKS cluster. You'll need the following information.
+1. **Select (or create) a subnet.** This subnet will be used to hold the networking components for the AIB service Proxy VM and Packer VM. This subnet needs to align with the requirements detailed above (or be more permissive). This subnet does NOT need access to any AKS cluster. You'll need the following information.
 
    * Subnet's Name (e.g. `snet-imagebuilder`)
    * Subnet's Virtual Network Name (e.g. `vnet-imagebuilder`)
    * Subnet's Resource Group Name (e.g. `rg-enterprise-networking-spokes`)
    * Subnet's Azure Region (e.g. `eastus2`)
 
-   An example of a network that satisfies the above can be found in the !!!TODO LINK TO REGULATED AKS WORK!!!.  If you deploy that example up and through the "Networking" steps, you'll have a subnet and egress firewall you can use as a starting point for the remaining steps.
+   An example of a network that satisfies all networking requirements and is maximally locked down can be found in the !!!TODO LINK TO REGULATED AKS WORK!!!. If you deploy that example up and through the "Networking" steps, you'll have a subnet, NSG, and egress firewall you can use as a starting point for the remaining steps.
 
 1. **Clone this repo locally.** _Optional._
 
@@ -121,79 +120,126 @@ The Azure Image Builder service supports hosting the image building process in a
    cd TODO
    ```
 
-1. **Deploy Azure RBAC custom roles.** _Optional._
+1. :rocket: **Deploy Azure RBAC custom roles.** _Optional._
 
    Deploy the two custom Azure RBAC roles to the subscription that define the **least privilege permissions necessary** for Azure Image Builder to build and distribute an image. If you do not perform this step, you'll need to provide more permissive role assignments than necessary in a future step.
 
    ```bash
    az deployment sub create --template-file ./createsubscriptionroles.json --location centralus
+
+   export NETWORK_CONTRIBUTOR_ROLE=$(az ...)
+   export IMAGE_CONTRIBUTOR_ROLE=$(az ...)
    ```
 
-1. **Select (or create) the Azure Image Builder resource group.**
+   If you did not clone the repo, you can use the following Deploy to Azure button.
 
-   Create a new, or choose an existing, resource group to hold the Azure Image Builder managed identity and image template. This resource group is typically not the one you deploy your AKS jumpbox image to (but it could be, if desired).
+   TODO-ADD-DEPLOY-BUTTON
+
+1. :rocket: **Select (or create) the Azure Image Builder resource group.**
+
+   Create a new, or choose an existing, resource group to hold the Azure Image Builder managed identity and image template. This resource group is typically not the one you deploy your AKS jumpbox image nor is necessarily the the resource group containing your AIB subnet. However, it could be any of those, if desired.
+
+   Identify the resource group name.
 
    ```bash
    export RESOURCE_GROUP_AIB=rg-imagebuilders
+   ```
 
+  Create the resource group, if not already existing. The location identified here does not matter.
+
+   ```bash
    az group create $RESOURCE_GROUP_AIB --location centralus
    ```
 
-1. **Deploy AIB service's managed identity and assign Azure RBAC roles.**
+1. :rocket: **Deploy AIB service's Managed Identity and assign Azure RBAC roles.**
 
-   Update the values in `azuredeploy.parameters.json` to align with your environment. Specifically you'll be setting information about the target subnet (From Step 2 above) in which the image will be built from within, what RBAC roles the service's managed identity will receive, and where the built image resource will be created.
+   Option 1 (requires cloned repo):
+
+   Update the values in `azuredeploy.parameters.json` to align with your environment. Specifically you'll be setting parameter values with the target subnet (from Step 2 above) in which the image will be built from within, what RBAC roles the service's Managed Identity will receive, and where the built image resource will be distributed to.
 
    ```bash
-   az deployment group create -g rg-imagebuilders --template-file ./azuredeploy.json --parameters "@.\azuredeploy.parameters.json"
+   az deployment group create -g ${RESOURCE_GROUP_AIB} --template-file ./azuredeploy.json --parameters "@.\azuredeploy.parameters.json"
    ```
 
-   After this step completes, you'll see a new resource group was created for you `IT_rg-imagebuilders_imgt...`. There is nothing in this resource group at the moment, but your managed identity is a "Contributor" to this resource group. When you build the image (next step), this resource group will be populated with an internal load balancer, a private link connection, and two VMs. This is the compute for Azure Image Builder. It will also contain a storage account in which logs of the image building process can be found and is also used as transient storage for the image building option.
+   Option 2:
 
-   Your managed identity is also now a XXX (or "Network Contributor" if you didn't create custom roles), on the whole virtual network in which the build will take place.
-
-   And finally, your managed identity is also now a XXX (or "Contributor" if you didn't create custom roles), on the whole resource group in which the image resource will be deployed to.  Note: While we assigned this permission in this ARM template, this latter permission can technically be assigned at the last responsible moment (immediately before building the AKS image template). It's applied here for simplicity only.
-
-1. Build your jumpbox image
-
-   At this point, images can now be constructed from the deployed template. Invoking the following command will kick off an image build, delivering the final image to the designated resource group from the prior step.
+   Deploy without parameters file.
 
    ```bash
-   az resource invoke-action --resource-group rg-imagebuilders --resource-type  Microsoft.VirtualMachineImages/imageTemplates -n imgt-aksopsjb-20201228T151517 --action Run
+   export RESOURCE_GROUP_VNET="rg-enterprise-networking-spokes"
+   export VNET_NAME="vnet-imagebuilder"
+   export SNET_NAME="snet-imagebuilder"
+   export VNET_LOCATION="eastus2"
+   export NETWORK_CONTRIBUTOR_ROLE=$(NETWORK_CONTRIBUTOR_ROLE:-4d97b98b-1d4f-4787-a291-c67834d212e7)
+   export IMAGE_CONTRIBUTOR_ROLE=$(IMAGE_CONTRIBUTOR_ROLE:-b24988ac-6180-42a0-ab88-20f7382dd24c)
+   export IMAGE_RG_NAME="rg-mycluster"
+
+   az deployment group create -g ${RESOURCE_GROUP_AIB} --template-file https://github.com/mspnp/TODO/azuredeploy.json --parameters buildInVnetResourceGroupName=${RESOURCE_GROUP_VNET} buildInVnetName=${vnet-imagebuilder} buildInVnetSubnetName=${SNET_NAME} location=${VNET_LOCATION} imageBuilderNetworkingRoleGuid=${NETWORK_CONTRIBUTOR_ROLE} imageBuilderImageCreationRoleGuid=${IMAGE_CONTRIBUTOR_ROLE} imageDestinationResourceGroupName${IMAGE_RG_NAME}
    ```
 
-   If you run into any problems with the above command, verify your network aligns with the specifications and also refer to the documented [troubleshooting steps](https://docs.microsoft.com/azure/virtual-machines/linux/image-builder-troubleshoot).
+   Option 3:
 
-1. Capture any log data desired to be retained.
+   Deploy via Deploy to Azure Button
 
-   If you wish to review or retain any logs generated during the image building process, copy out the log blob from the storage account in the `IT...` resource group.  You'll find the logs in a container called `TODO`.
+   TODO-BUILD-BUTTON
 
-1. Delete Temporary Role Assignments (Optional, but highly recommended)
+1. :mag: **Validate deployment results.**
 
-   The permissions on the target resource group for the AIB service is only necessary while building a new image. If you do not plan on building a new image immediately, consider removing the role assignment between the managed identity and the destination resource group to remove necessary permissions on identity.
+   After the prior step completes, you'll see a new resource group was created for you `IT_...`. There is nothing in this resource group at the moment, but your managed identity is a "Contributor" to this resource group. When you build the image (next step), this resource group will be populated with an internal load balancer, a private link connection, and two VMs. This is the compute for Azure Image Builder. It will also contain a storage account in which logs of the image building process can be found and is also used as transient storage for the image building option.
+
+   Your managed identity is also now a "Azure Image Builder Service Network Joiner" (or "Network Contributor" if you didn't create custom roles), on the whole virtual network in which the build will take place.
+
+   And finally, your managed identity is also now a "Image Contributor" (or "Contributor" if you didn't create custom roles), on the whole resource group in which the image resource will be deployed to. Note: While we assigned this role in this ARM template, this specific role assignment can technically be assigned at the last responsible moment (immediately before building the AKS image template). It's applied here for simplicity only.
+
+   Your image template is a _hidden_ resource in the resource group containing the service's managed identity.
+
+1. :rocket: **Build your jumpbox image.**
+
+   At this point, an image can now be constructed from the deployed template. Invoking the following command will kick off an image build, delivering the final image to the designated resource group defined above.
+
+   **TODO: Extract image template name for below.**
 
    ```bash
-   az role assignment delete --assignee $TODO --role $TODO-GUID --scope /subscriptions/$subTODO/resourceGroups/$rgTODO
+   az resource invoke-action --resource-group ${RESOURCE_GROUP_AIB} --resource-type Microsoft.VirtualMachineImages/imageTemplates -n ${IMAGE_TEMPLATE_NAME} --action Run
+   ```
+
+   If AIB runs into any problems while executing, verify your network aligns with the specifications and also refer to the documented [troubleshooting steps](https://docs.microsoft.com/azure/virtual-machines/linux/image-builder-troubleshoot).
+
+## :heavy_check_mark: Try your image
+
+Now that you have an image, you can create a VM or a VMSS based off of that image. Simply place that compute in a secured subnet with network line-of-sight to your AKS Cluster API Server and then use Azure Bastion to connect.
+
+## :broom: Clean up resources
+
+1. :floppy_disk: **Capture any log data desired to be retained.**
+
+   If you wish to review or retain any logs generated during the image building process, copy out the log blob from the storage account in the `IT...` resource group.  You'll find a `customization.log` file in a container called `packerlogs`.
+
+1. :broom: **Remove image contributor role assignment.** _Optional._
+
+   The Image Contributor permissions on the target resource group for the AIB service is only necessary while building a new image. If you do not plan on building a new image immediately, consider removing the role assignment between AIB's Managed Identity and the destination resource group.
+
+   ```bash
+   az role assignment delete --assignee $TODOEXTRACTTHIS --role ${IMAGE_CONTRIBUTOR_ROLE} --scope /subscriptions/<your-subscription-id>/resourceGroups/${IMAGE_RG_NAME}
    ```
 
    Before you deploy the template again, you'll need to ensure this permission is reapplied.  This permission's existence isn't "checked for" until after the image is built and is about to be deployed. So if this permission isn't added, you won't see an error until the last step is being performed in the image build process.
 
-1. Delete Image Template (Optional)
+1. :broom: **Delete virtual machine image template.** _Optional._
 
-   If you do not plan on deploying from this _specific_ image template again, then you can delete the image template. Note, a modification of the template will create a NEW template, so the only reason you'd deploy this _specific_ template again is if you deleted the generated image and wanted to recreate it.
+   If you do not plan on deploying from this _specific_ image template again, then you can delete the image template. Note, a modification of the template or deployment target will create a NEW template, so the only reason you'd deploy this _specific_ template again is if you deleted the generated image and wanted to recreate it in the same resource group.
 
-   This action will also delete the `IT_` resource group and the storage account remaining in it. Ensure you've saved all logs required before performing this cleanup.
+   This action will also delete the `IT_` infrastructure resource group and the storage account remaining in it. Ensure you've saved all logs required before performing this action.
 
    ```bash
-   az resource delete --resource-group rg-imagebuilders --resource-type Microsoft.VirtualMachineImages/imageTemplates -n imgt-aksopsjb-20201228T151517.
+   az resource delete --resource-group ${RESOURCE_GROUP_AIB} --resource-type Microsoft.VirtualMachineImages/imageTemplates -n ${IMAGE_TEMPLATE_NAME}.
    ```
 
    Deleting this template will NOT delete any images created from this template.
 
-1. Delete Remaining resources (Optional)
+1. :broom: **Delete remaining resources.** _Optional._
 
-   All that remains of Azure Image Builder infrastructure at this point is just the managed identity, it's role assignment to the virtual network in which the builds take place, and the subnet (and virtual network) in which the builds take place. If building images is a bespoke action, and you'd rather remove the remaining resources and deploy them JIT before another image build, you can remove the remaining resources.
-
-   Deleting the remaining resources will NOT delete any images created from this template.
+   All that remains of the Azure Image Builder infrastructure at this point is just the Managed Identity, its role assignment to the Virtual Network in which the builds take place, and the subnet in which the builds take place. If building images is a bespoke action, and you'd rather remove the remaining resources and deploy them JIT before another image build, you can remove the remaining resources.
 
    If retaining the virtual network then delete the role assignment on the virtual network.
 
@@ -207,10 +253,8 @@ The Azure Image Builder service supports hosting the image building process in a
    az identity delete -ids $TODO
    ```
 
-### Try Your Image
-
-Now that you have an image, you can create a VM or a VMSS based off of that image. Simply place that compute in a secured subnet with network line-of-sight to your AKS Cluster API Server and then use Azure Bastion to connect.
+   Deleting these remaining resources will NOT delete any images created from this template.
 
 ### Costs
 
-There is no cost for Azure Image Builder service directly, instead of the costs of the transient resources deployed to the infrastructure resource group and related network costs comprise the bulk of the cost. See the [Costs](https://docs.microsoft.com/azure/virtual-machines/image-builder-overview#costs) section of the service's docs.
+There is no cost for Azure Image Builder service directly, instead of the costs of the transient resources deployed to the (`IT_`) infrastructure resource group and related network costs comprise the bulk of the cost. See the [Costs](https://docs.microsoft.com/azure/virtual-machines/image-builder-overview#costs) section of the Azure Image Builder service's docs.
