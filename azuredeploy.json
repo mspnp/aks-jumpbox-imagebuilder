@@ -4,20 +4,26 @@
     "parameters": {
         "buildInVnetResourceGroupName": {
             "type": "string",
-            "defaultValue": "rg-enterprise-networking-spokes"
+            "metadata": {
+                "description": "The Resource Group containing the VirtualNetwork in which image builds will take place."
+            }
         },
         "buildInVnetName": {
             "type": "string",
-            "defaultValue": "vnet-hub-spoke-BU0001A0008-00"
+            "metadata": {
+                "description": "The Virtual Network name found within the designated Resource Group in which image builds will take place."
+            }
         },
         "buildInVnetSubnetName": {
             "type": "string",
-            "defaultValue": "snet-management-jumpboximagebuilder"
+            "metadata": {
+                "description": "The subnet name found within the designated Virtual Network in which image builds will take place."
+            }
         },
         "location": {
             "type": "string",
             "metadata": {
-                "description": "Must be the same as the vnet"
+                "description": "The location of the Virtual Network in which image builds will take place."
             }
         },
         "imageBuilderNetworkingRoleGuid": {
@@ -30,14 +36,14 @@
         },
         "imageTemplateName": {
             "type": "string",
-            "defaultValue": "[concat('aks-opsImgTmpl-', utcNow('yyyyMMddTHHmmss'))]"
+            "defaultValue": "[concat('imgt-aksopsjb-', utcNow('yyyyMMddTHHmmss'))]"
         },
         "imageDestinationResourceGroupName": {
             "type": "string"
         },
         "imageName": {
             "type": "string",
-            "defaultValue": "[concat('vmimg-aks-opsjb-', utcNow('yyyyMMddTHHmmss'))]"
+            "defaultValue": "[concat('img-aksopsjb-', utcNow('yyyyMMddTHHmmss'))]"
         }
     },
     "variables": {
