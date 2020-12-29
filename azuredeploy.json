@@ -5,7 +5,7 @@
         "buildInVnetResourceGroupName": {
             "type": "string",
             "metadata": {
-                "description": "The Resource Group containing the VirtualNetwork in which image builds will take place."
+                "description": "The existing Resource Group containing the VirtualNetwork in which image builds will take place."
             }
         },
         "buildInVnetName": {
@@ -28,22 +28,35 @@
         },
         "imageBuilderNetworkingRoleGuid": {
             "type": "string",
-            "defaultValue": "4d97b98b-1d4f-4787-a291-c67834d212e7" // TODO: Extract to instructions, don't leave it like this. Fall back to Network Contributor if not provided, which is WAY more permission than necessary. This role will be granted to the managed identity, scoped to the builtInVnetName.
+            "metadata": {
+                "description": "Ideally the custom Azure Image Builder Service Network Joiner role, otherwise should be Network Contributor role guid."
+            }
         },
         "imageBuilderImageCreationRoleGuid": {
             "type": "string",
-            "defaultValue": "b24988ac-6180-42a0-ab88-20f7382dd24c" // TODO: Extract to instructions, don't leave it like this. Fall back to Contributor if not provided, which is WAY more permission than necessary. This role will be granted to the managed identity, scoped to imageResourceGroupName.
+            "metadata": {
+                "description": "Ideally the custom Image Contributor role, otherwise should be Contributor role guid."
+            }
         },
         "imageTemplateName": {
             "type": "string",
-            "defaultValue": "[concat('imgt-aksopsjb-', utcNow('yyyyMMddTHHmmss'))]"
+            "defaultValue": "[concat('imgt-aksopsjb-', utcNow('yyyyMMddTHHmmss'))]",
+            "metadata": {
+                "description": "Optional. Set the output name for the image template resource, needs to be unique within the resource group."
+            }
         },
         "imageDestinationResourceGroupName": {
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description": "The name of the exisiting Resource Group in which the managed VM image resource will be deployed to. It can be the same as this deployment's Resource Group and/or the vnet Resource Group."
+            }
         },
         "imageName": {
             "type": "string",
-            "defaultValue": "[concat('img-aksopsjb-', utcNow('yyyyMMddTHHmmss'))]"
+            "defaultValue": "[concat('img-aksopsjb-', utcNow('yyyyMMddTHHmmss'))]",
+            "metadata": {
+                "description": "Optional. Set the output name for the managed VM image resource."
+            }
         }
     },
     "variables": {
