@@ -6,7 +6,7 @@
             "value": "rg-enterprise-networking-spokes"
         },
         "buildInVnetName": {
-            "value": "vnet-hub-spoke-BU0001A0008-01"
+            "value": "vnet-imagebuilder"
         },
         "buildInVnetSubnetName": {
             "value": "snet-imagebuilder"
@@ -15,13 +15,13 @@
             "value": "eastus2"
         },
         "imageBuilderNetworkingRoleGuid": {
-            "value": "4d97b98b-1d4f-4787-a291-c67834d212e7" // Use "Network Contributor" (4d97b98b-1d4f-4787-a291-c67834d212e7) if custom role not defined
+            "value": "Put NETWORK_CONTRIBUTOR_ROLE or 4d97b98b-1d4f-4787-a291-c67834d212e7 Here" // Must use "Network Contributor" (4d97b98b-1d4f-4787-a291-c67834d212e7) if custom role not defined
         },
         "imageBuilderImageCreationRoleGuid": {
-            "value": "b24988ac-6180-42a0-ab88-20f7382dd24c" // Use "Contributor" (b24988ac-6180-42a0-ab88-20f7382dd24c) if custom role not defined
+            "value": "Put IMAGE_CONTRIBUTOR_ROLE or b24988ac-6180-42a0-ab88-20f7382dd24c Here" // Must use "Contributor" (b24988ac-6180-42a0-ab88-20f7382dd24c) if custom role not defined
         },
         "imageDestinationResourceGroupName": {
-            "value": "rg-bu0001a0008"
+            "value": "rg-mycluster"
         }
     }
 }

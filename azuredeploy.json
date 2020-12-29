@@ -227,6 +227,10 @@
         }
     ],
     "outputs": {
+        "vnetResourceId": {
+            "type": "string",
+            "value": "[variables('builtInVNetResourceId')]"
+        },
         "imageTemplateName": {
             "type": "string",
             "value": "[parameters('imageTemplateName')]"
@@ -242,6 +246,10 @@
         "builderIdentityResource": {
             "type": "object",
             "value": "[reference(variables('aibManagedIdentityName'))]"
+        },
+        "builderIdentityResourceId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('aibManagedIdentityName'))]"
         }
     }
 }
