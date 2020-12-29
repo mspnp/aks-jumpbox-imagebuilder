@@ -287,6 +287,11 @@ Now that you have a managed VM image designed for AKS jumpbox operations, you ca
 
 There is no cost for Azure Image Builder service directly; instead of the costs of the transient resources deployed to the (`IT_`) infrastructure resource group and related network costs comprise the bulk of the cost. See the [Costs](https://docs.microsoft.com/azure/virtual-machines/image-builder-overview#costs) section of the Azure Image Builder service's docs.
 
+## See also
+
+* For more examples of using the Azure Image Builder service, see [Daniel Sol's github repository](https://github.com/danielsollondon/azvmimagebuilder).
+* For AKS architecture, see [AKS Baseline Cluster](https://aka.ms/architecture/aks-baseline).
+
 ## Contributions
 
 Please see our [contributor guide](./CONTRIBUTING.md).
