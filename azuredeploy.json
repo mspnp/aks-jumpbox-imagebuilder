@@ -1,0 +1,268 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "buildInVnetResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The existing Resource Group containing the VirtualNetwork in which image builds will take place."
+            }
+        },
+        "buildInVnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "The Virtual Network name found within the designated Resource Group in which image builds will take place."
+            }
+        },
+        "buildInVnetSubnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "The subnet name found within the designated Virtual Network in which image builds will take place."
+            }
+        },
+        "location": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of the Virtual Network in which image builds will take place."
+            }
+        },
+        "imageBuilderNetworkingRoleGuid": {
+            "type": "string",
+            "metadata": {
+                "description": "Ideally the custom Azure Image Builder Service Network Joiner role, otherwise should be Network Contributor role guid."
+            }
+        },
+        "imageBuilderImageCreationRoleGuid": {
+            "type": "string",
+            "metadata": {
+                "description": "Ideally the custom Image Contributor role, otherwise should be Contributor role guid."
+            }
+        },
+        "imageTemplateName": {
+            "type": "string",
+            "defaultValue": "[concat('imgt-aksopsjb-', utcNow('yyyyMMddTHHmmss'))]",
+            "metadata": {
+                "description": "Optional. Set the output name for the image template resource, needs to be unique within the resource group."
+            }
+        },
+        "imageDestinationResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the exisiting Resource Group in which the managed VM image resource will be deployed to. It can be the same as this deployment's Resource Group and/or the vnet Resource Group."
+            }
+        },
+        "imageName": {
+            "type": "string",
+            "defaultValue": "[concat('img-aksopsjb-', utcNow('yyyyMMddTHHmmss'))]",
+            "metadata": {
+                "description": "Optional. Set the output name for the managed VM image resource."
+            }
+        }
+    },
+    "variables": {
+        "builtInSubnetResourceId": "[resourceId(parameters('buildInVnetResourceGroupName'), 'Microsoft.Network/virtualNetworks/subnets', parameters('buildInVnetName'), parameters('buildInVnetSubnetName'))]",
+        "builtInVNetResourceId": "[resourceId(parameters('buildInVnetResourceGroupName'), 'Microsoft.Network/virtualNetworks', parameters('buildInVnetName'))]",
+        "aibManagedIdentityName": "[concat('mi-aks-jumpbox-imagebuilder-', uniqueString(resourceGroup().id))]",
+        "role": {
+            "customImageCreatorRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('imageBuilderImageCreationRoleGuid'))]",
+            "imageBuilderNetworkingRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('imageBuilderNetworkingRoleGuid'))]"
+        },
+        "networkRoleAssignmentName": "[guid(variables('builtInVNetResourceId'), variables('role').imageBuilderNetworkingRole, resourceGroup().id, variables('aibManagedIdentityName'))]",
+        "imageCreationRoleAssignmentName": "[guid(parameters('imageDestinationResourceGroupName'), variables('role').customImageCreatorRole, resourceGroup().id, variables('aibManagedIdentityName'))]"
+    },
+    "resources": [
+        {
+            "name": "[variables('aibManagedIdentityName')]",
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2018-11-30",
+            "location": "[parameters('location')]",
+            "comments": "Azure Image Builder (AIB) executes as this identity."
+        },
+        {
+            "name": "applyAibNetworkRoleToVnet",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2020-06-01",
+            "resourceGroup": "[parameters('buildInVnetResourceGroupName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('aibManagedIdentityName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "name": "[concat(parameters('buildInVnetName'), '/Microsoft.Authorization/', variables('networkRoleAssignmentName'))]",
+                            "type": "Microsoft.Network/virtualNetworks/providers/roleAssignments",
+                            "apiVersion": "2020-04-01-preview",
+                            "comments": "Grants AIB required networking permissions. Validated at image template creation time.",
+                            "properties": {
+                                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('aibManagedIdentityName'))).principalId]",
+                                "roleDefinitionId": "[variables('role').imageBuilderNetworkingRole]",
+                                "principalType": "ServicePrincipal"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "applyAibImageWriterRoleToDestinationRg",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2020-06-01",
+            "resourceGroup": "[parameters('imageDestinationResourceGroupName')]",
+            "dependsOn": [
+                "[resourceId(parameters('buildInVnetResourceGroupName'), 'Microsoft.Resources/deployments', 'applyAibNetworkRoleToVnet')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "name": "[variables('imageCreationRoleAssignmentName')]",
+                            "type": "/Microsoft.Authorization/roleAssignments",
+                            "apiVersion": "2020-04-01-preview",
+                            "comments": "Grants AIB required permissions to write final jumpbox image in designated resource group.",
+                            "properties": {
+                                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('aibManagedIdentityName'))).principalId]",
+                                "roleDefinitionId": "[variables('role').customImageCreatorRole]",
+                                "principalType": "ServicePrincipal"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "[parameters('imageTemplateName')]",
+            "type": "Microsoft.VirtualMachineImages/imageTemplates",
+            "apiVersion": "2020-02-14",
+            "location": "[parameters('location')]",
+            "comments": "This is the image spec for our jumpbox. This template can be used to build VM images as needed.",
+            "dependsOn": [
+                "[resourceId(parameters('buildInVnetResourceGroupName'), 'Microsoft.Resources/deployments', 'applyAibNetworkRoleToVnet')]",
+                "[resourceId(parameters('imageDestinationResourceGroupName'), 'Microsoft.Resources/deployments', 'applyAibImageWriterRoleToDestinationRg')]"
+            ],
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('aibManagedIdentityName'))]": {}
+                }
+            },
+            "properties": {
+                "buildTimeoutInMinutes": 60,
+                "vmProfile": {
+                    "osDiskSizeGB": 32,
+                    "vmSize": "Standard_DS1_v2",
+                    "vnetConfig": {
+                        "subnetId": "[variables('builtInSubnetResourceId')]"
+                    }
+                },
+                "source": {
+                    "type": "PlatformImage",
+                    "publisher": "Canonical",
+                    "offer": "UbuntuServer",
+                    "sku": "18.04-LTS",
+                    "version": "latest"
+                },
+                "distribute": [
+                    {
+                        "type": "ManagedImage",
+                        "runOutputName": "managedImageTarget",
+                        "imageId": "[resourceId(parameters('imageDestinationResourceGroupName'), 'Microsoft.Compute/images', parameters('imageName'))]",
+                        "location": "[parameters('location')]"
+                    }
+                ],
+                "customize": [
+                    {
+                        "type": "Shell",
+                        "name": "Install Update Installed Packages",
+                        "inline": [
+                            "echo \"Starting apt-get update/dist-upgrade\"",
+                            "sudo apt-get -yq update",
+                            "sudo apt-get -yq dist-upgrade",
+                            "echo \"Completed apt-get update/dist-upgrade\""
+                        ]
+                    },
+                    {
+                        "type": "Shell",
+                        "name": "Install Azure CLI",
+                        "inline": [
+                            "echo \"Starting Azure CLI install\"",
+                            "curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash",
+                            "echo \"Completed Azure CLI install\""
+                        ]
+                    },
+                    {
+                        "type": "Shell",
+                        "name": "Install Azure CLI extensions",
+                        "inline": [
+                            "echo \"Starting AZ CLI extension add\"",
+                            "sudo az extension add -n aks-preview",
+                            "echo \"Completed AZ CLI extension add\""
+                        ]
+                    },
+                    {
+                        "type": "Shell",
+                        "name": "Install kubectl and kubelogin",
+                        "inline": [
+                            "echo \"Starting kubectl install\"",
+                            "sudo az aks install-cli",
+                            "echo \"Completed kubectl install\""
+                        ]
+                    },
+                    {
+                        "type": "Shell",
+                        "name": "Install helm",
+                        "inline": [
+                            "echo \"Starting helm install\"",
+                            "curl -s https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash",
+                            "echo \"Completed helm install\""
+                        ]
+                    },
+                    {
+                        "type": "Shell",
+                        "name": "Install terraform",
+                        "inline": [
+                            "echo \"Starting terraform install\"",
+                            "sudo apt-get -yq install unzip",
+                            "curl -LO https://releases.hashicorp.com/terraform/0.14.3/terraform_0.14.3_linux_amd64.zip",
+                            "sudo unzip terraform_0.14.3_linux_amd64.zip -d /usr/local/bin",
+                            "rm -f terraform_0.14.3_linux_amd64.zip",
+                            "echo \"Completed terraform install\""
+                        ]
+                    }
+                ]
+            }
+        }
+    ],
+    "outputs": {
+        "vnetResourceId": {
+            "type": "string",
+            "value": "[variables('builtInVNetResourceId')]"
+        },
+        "imageTemplateName": {
+            "type": "string",
+            "value": "[parameters('imageTemplateName')]"
+        },
+        "imageName": {
+            "type": "string",
+            "value": "[parameters('imageName')]"
+        },
+        "distributedImageResourceId": {
+            "type": "string",
+            "value": "[reference(parameters('imageTemplateName')).distribute[0].imageId]"
+        },
+        "builderIdentityResource": {
+            "type": "object",
+            "value": "[reference(variables('aibManagedIdentityName'))]"
+        },
+        "builderIdentityResourceId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('aibManagedIdentityName'))]"
+        }
+    }
+}

@@ -1,0 +1,27 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "buildInVnetResourceGroupName": {
+            "value": "rg-enterprise-networking-spokes"
+        },
+        "buildInVnetName": {
+            "value": "vnet-imagebuilder"
+        },
+        "buildInVnetSubnetName": {
+            "value": "snet-imagebuilder"
+        },
+        "location": {
+            "value": "eastus2"
+        },
+        "imageBuilderNetworkingRoleGuid": {
+            "value": "Put NETWORK_CONTRIBUTOR_ROLE or 4d97b98b-1d4f-4787-a291-c67834d212e7 Here" // Must use "Network Contributor" (4d97b98b-1d4f-4787-a291-c67834d212e7) if custom role not defined
+        },
+        "imageBuilderImageCreationRoleGuid": {
+            "value": "Put IMAGE_CONTRIBUTOR_ROLE or b24988ac-6180-42a0-ab88-20f7382dd24c Here" // Must use "Contributor" (b24988ac-6180-42a0-ab88-20f7382dd24c) if custom role not defined
+        },
+        "imageDestinationResourceGroupName": {
+            "value": "rg-mycluster"
+        }
+    }
+}
