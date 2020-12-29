@@ -1,6 +1,6 @@
 # Azure Kubernetes Service (AKS) Jumpbox Builder
 
-Nowadays it is paramount for many organizations to restrict network access to their AKS cluster's control plane (API Server) to reduce the surface of attack and at the same time being compliance with regulations in their respective industries. This is done via the AKS [authorized IP range](https://docs.microsoft.com/azure/aks/api-server-authorized-ip-ranges) feature or the [AKS private cluster](https://docs.microsoft.com/azure/aks/private-clusters) offering. This often means a cluster operator can no longer directly `kubectl` or perform similar administrative actions against the cluster directly from their own workstation. A common solution is to use designated virtual machines, residing on a subnet that have been granted sufficient network line of sight to the AKS API server and/or nodepool nodes.
+Nowadays it is paramount for many organizations to restrict network access to their AKS cluster's control plane (API Server) to reduce the surface of attack and at the same time being compliance with regulations in their respective industries. This is done via the AKS [authorized IP range](https://docs.microsoft.com/azure/aks/api-server-authorized-ip-ranges) feature or the [AKS private cluster](https://docs.microsoft.com/azure/aks/private-clusters) offering. This often means that a cluster operator can no longer perform administrative actions against the cluster directly from all networks but permitted addresses only. A common solution is to use designated virtual machines, residing on a subnet with a particular address range that has been granted sufficient network line of sight to the AKS API server and/or nodepool nodes.
 
 These virtual machines are access points, typically called jumpboxes, which are meant to be used at various times in the lifecycle of a cluster; most notably in break-fix situations. When a high severity issue is happening, operators want immediate access to resolve the issue efficiently. This means that the jumpbox should include all of your expected triage & mitigation tooling and be highly available. However, because it has network line-of-sight to your cluster's control plane, it needs to be a governed/observable resource and is also considered a new attack vector for your cluster.
 
@@ -102,6 +102,14 @@ The Azure Image Builder service supports hosting the image building process in a
 
 ## :rocket: Deploy Azure Image Builder service
 
+### Prerequisites
+
+1. **Latest [Azure CLI installed](https://docs.microsoft.com/cli/azure/install-azure-cli?view=azure-cli-latest)** or you can perform this from Azure Cloud Shell by clicking below.
+
+   [![Launch Azure Cloud Shell](https://docs.microsoft.com/azure/includes/media/cloud-shell-try-it/launchcloudshell.png)](https://shell.azure.com)
+
+   > :bulb: The steps shown here and elsewhere in the reference implementation use Bash shell commands. On Windows, you can use the [Windows Subsystem for Linux](https://docs.microsoft.com/windows/wsl/about#what-is-wsl-2) to run Bash.
+
 1. **Enable the Azure Image Builder service** on your subscription. While the Azure Image Builder is in preview, you need to [register the feature](https://docs.microsoft.com/azure/virtual-machines/linux/image-builder#register-the-features).
 
    ```bash
@@ -119,6 +127,8 @@ The Azure Image Builder service supports hosting the image building process in a
    ```bash
    az provider register -n Microsoft.VirtualMachineImages
    ```
+
+### Perform deployment
 
 1. **Select (or create) a subnet.** This subnet will be used to hold the networking components for the AIB service Proxy VM and Packer VM. This subnet needs to align with the requirements detailed above (_or be more permissive_). This subnet does NOT need access to any AKS cluster. You'll need the following information.
 
@@ -159,7 +169,7 @@ The Azure Image Builder service supports hosting the image building process in a
    Create the resource group, if not already existing. The location identified here will not matter.
 
    ```bash
-   az group create ${RESOURCE_GROUP_AIB} --location centralus
+   az group create $RESOURCE_GROUP_AIB --location centralus
    ```
 
 1. **Clone this repo locally.** _Optional._
@@ -181,9 +191,9 @@ The Azure Image Builder service supports hosting the image building process in a
    Update the values in `azuredeploy.parameters.json` to align with your environment. Specifically you'll be setting parameter values with the target subnet (from Step 2 above) in which the image will be built from within, what RBAC roles the service's Managed Identity will receive, and where the built image resource will be distributed to.
 
    ```bash
-   az deployment group create -g ${RESOURCE_GROUP_AIB} -f azuredeploy.json -p "@azuredeploy.parameters.json" -n aibaksjumpboximgtemplate
+   az deployment group create -g $RESOURCE_GROUP_AIB -f azuredeploy.json -p "@azuredeploy.parameters.json" -n aibaksjumpboximgtemplate
 
-   export RESOURCE_GROUP_IMAGE=$(az deployment group show -g ${RESOURCE_GROUP_AIB} -n aibaksjumpboximgtemplate --query 'properties.parameters.imageDestinationResourceGroupName.value' -o tsv)
+   export RESOURCE_GROUP_IMAGE=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.parameters.imageDestinationResourceGroupName.value' -o tsv)
    ```
 
    Option 2:
@@ -199,7 +209,7 @@ The Azure Image Builder service supports hosting the image building process in a
    export IMAGE_CONTRIBUTOR_ROLE=$(IMAGE_CONTRIBUTOR_ROLE:-b24988ac-6180-42a0-ab88-20f7382dd24c)     # Use custom role, or default to extra permissive Contributor role
    export RESOURCE_GROUP_IMAGE="rg-mycluster"
 
-   az deployment group create -g ${RESOURCE_GROUP_AIB} -f https://raw.githubusercontent.com/mspnp/aks-jumpbox-imagebuilder/main/azuredeploy.json -p buildInVnetResourceGroupName=${RESOURCE_GROUP_VNET} buildInVnetName=${VNET_NAME} buildInVnetSubnetName=${SNET_NAME} location=${VNET_LOCATION} imageBuilderNetworkingRoleGuid=${NETWORK_CONTRIBUTOR_ROLE} imageBuilderImageCreationRoleGuid=${IMAGE_CONTRIBUTOR_ROLE} imageDestinationResourceGroupName=${RESOURCE_GROUP_IMAGE} -n aibaksjumpboximgtemplate
+   az deployment group create -g $RESOURCE_GROUP_AIB -f https://raw.githubusercontent.com/mspnp/aks-jumpbox-imagebuilder/main/azuredeploy.json -p buildInVnetResourceGroupName=${RESOURCE_GROUP_VNET} buildInVnetName=${VNET_NAME} buildInVnetSubnetName=${SNET_NAME} location=${VNET_LOCATION} imageBuilderNetworkingRoleGuid=${NETWORK_CONTRIBUTOR_ROLE} imageBuilderImageCreationRoleGuid=${IMAGE_CONTRIBUTOR_ROLE} imageDestinationResourceGroupName=${RESOURCE_GROUP_IMAGE} -n aibaksjumpboximgtemplate
    ```
 
 1. **Review deployment results.**
@@ -217,10 +227,10 @@ The Azure Image Builder service supports hosting the image building process in a
    At this point, an VM image can now be constructed by AIB from the deployed image template deployed to the AIB resource group (`RESOURCE_GROUP_AIB`). Invoking the following command will kick off an image build, delivering the final image to the designated resource group defined above (`RESOURCE_GROUP_IMAGE`). This command (or its REST equivalent), is the only mechanism to perform this action. There is no portal experience or dedicated az cli experience at this time.
 
    ```bash
-   export IMAGE_TEMPLATE_NAME=$(az deployment group show -g ${RESOURCE_GROUP_AIB} -n aibaksjumpboximgtemplate --query 'properties.outputs.imageTemplateName.value' -o tsv)
+   export IMAGE_TEMPLATE_NAME=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.imageTemplateName.value' -o tsv)
 
    # This command may take up to 30 minutes to execute.
-   az resource invoke-action --resource-group ${RESOURCE_GROUP_AIB} --resource-type Microsoft.VirtualMachineImages/imageTemplates -n ${IMAGE_TEMPLATE_NAME} --action Run
+   az resource invoke-action --resource-group $RESOURCE_GROUP_AIB --resource-type Microsoft.VirtualMachineImages/imageTemplates -n $IMAGE_TEMPLATE_NAME --action Run
    ```
 
    During this process, if you check the `IT_` infrastructure resource group, you'll see the transient resources be created, and once the Packer VM is started, you'll start to see logs in the `packerlogs` container in the storage account created in this resource group.  Once this completes, you now have a custom VM Managed Image resource created in your designated resource group (`RESOURCE_GROUP_IMAGE`). The `IT_` infrastructure resource group will only contain a storage account, as all other transient compute was automatically deprovisioned.
@@ -242,10 +252,10 @@ Now that you have a managed VM image designed for AKS jumpbox operations, you ca
    The _Image Contributor_ (or _Contributor_ if not using custom roles) role assignment on the target resource group for the AIB service is only necessary while actively building an image. If you do not plan on building a new image immediately, consider removing the role assignment between AIB's Managed Identity and the destination resource group.
 
    ```bash
-   export AIB_MANAGED_IDENTITY=$(az deployment group show -g ${RESOURCE_GROUP_AIB} -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResource.value.principalId' -o tsv)
+   export AIB_MANAGED_IDENTITY=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResource.value.principalId' -o tsv)
    export SUBSCRIPTION_ID=$(az account show --query 'id' -o tsv)
 
-   az role assignment delete --assignee ${AIB_MANAGED_IDENTITY} --role ${IMAGE_CONTRIBUTOR_ROLE} --scope /subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP_IMAGE}
+   az role assignment delete --assignee $AIB_MANAGED_IDENTITY --role $IMAGE_CONTRIBUTOR_ROLE --scope /subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP_IMAGE}
    ```
 
    Before you deploy the template again, you'll need to ensure this role assignment is reapplied. This permission's existence isn't "checked for" until after the image is built and is about to be deployed. So if this role isn't assigned, you won't see an error until the last step is being performed in the image build process.
@@ -257,7 +267,7 @@ Now that you have a managed VM image designed for AKS jumpbox operations, you ca
    This action will also delete the `IT_` infrastructure resource group, including the storage account remaining in it. _Ensure you've saved all logs required before performing this action._
 
    ```bash
-   az resource delete --resource-group ${RESOURCE_GROUP_AIB} --resource-type Microsoft.VirtualMachineImages/imageTemplates -n ${IMAGE_TEMPLATE_NAME}
+   az resource delete --resource-group $RESOURCE_GROUP_AIB --resource-type Microsoft.VirtualMachineImages/imageTemplates -n $IMAGE_TEMPLATE_NAME
    ```
 
    Deleting the image template resource and ostensibly the `IT_` infrastructure resource group will NOT delete any VM images created from this template or impact any running compute using the generated VM images.
@@ -269,10 +279,10 @@ Now that you have a managed VM image designed for AKS jumpbox operations, you ca
    If retaining the virtual network, then delete the _Azure Image Builder Service Network Joiner_ (or _Network Contributor_ if not using custom roles) role assignment on the virtual network. If deleting the virtual network, then you can simply remove the vnet and this role assignment will be removed automatically.
 
    ```bash
-   export AIB_MANAGED_IDENTITY=$(AIB_MANAGED_IDENTITY:-az deployment group show -g ${RESOURCE_GROUP_AIB} -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResource.value.principalId' -o tsv)
-   export VNET_ID=$(az deployment group show -g ${RESOURCE_GROUP_AIB} -n aibaksjumpboximgtemplate --query 'properties.outputs.vnetResourceId.value' -o tsv)
+   export AIB_MANAGED_IDENTITY=$(AIB_MANAGED_IDENTITY:-az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResource.value.principalId' -o tsv)
+   export VNET_ID=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.vnetResourceId.value' -o tsv)
 
-   az role assignment delete --assignee ${AIB_MANAGED_IDENTITY} --role ${NETWORK_CONTRIBUTOR_ROLE} --scope ${VNET_ID}
+   az role assignment delete --assignee $AIB_MANAGED_IDENTITY --role $NETWORK_CONTRIBUTOR_ROLE --scope $VNET_ID
    ```
 
    Delete the Managed Identity. Note, deleting the Managed Identity does NOT remove role assignments to it. See the steps above for removing role assignments used by this identity if retaining the virtual network or virtual machine image longer than the Managed Identity.
@@ -288,6 +298,10 @@ Now that you have a managed VM image designed for AKS jumpbox operations, you ca
 ## Costs
 
 There is no cost for Azure Image Builder service directly; instead of the costs of the transient resources deployed to the (`IT_`) infrastructure resource group and related network costs comprise the bulk of the cost. See the [Costs](https://docs.microsoft.com/azure/virtual-machines/image-builder-overview#costs) section of the Azure Image Builder service's docs.
+
+## Security
+
+This jumpbox image and its creation process has not been fully hardened. For example, the jumpbox image is pulling package updates from Ubuntu and Microsoft public servers; Azure CLI, Helm, and Terraform are installed straight from the Internet. Ensure even processes like this adhere to your organizational policies and pull updates from your organization's package servers, and store well-known 3rd party dependencies in trusted locations. If all necessary resources have been brought "network-local" the NSG and Azure Firewall allowances can be made even tighter. Also apply any standard OS hardening procedures your organization requires for privileged access machines. A jumpbox is an attack vector that needs to be considered when evaluating any particular access solution.
 
 ## See also
 
