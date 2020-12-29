@@ -108,7 +108,7 @@ The Azure Image Builder service supports hosting the image building process in a
 
    [![Launch Azure Cloud Shell](https://docs.microsoft.com/azure/includes/media/cloud-shell-try-it/launchcloudshell.png)](https://shell.azure.com)
 
-   > :bulb: The steps shown here and elsewhere in the reference implementation use Bash shell commands. On Windows, you can use the [Windows Subsystem for Linux](https://docs.microsoft.com/windows/wsl/about#what-is-wsl-2) to run Bash.
+   > :bulb: The steps shown here use Bash shell commands. On Windows, you can use the [Windows Subsystem for Linux](https://docs.microsoft.com/windows/wsl/about#what-is-wsl-2) to run Bash.
 
 1. **Enable the Azure Image Builder service** on your subscription. While the Azure Image Builder is in preview, you need to [register the feature](https://docs.microsoft.com/azure/virtual-machines/linux/image-builder#register-the-features).
 
@@ -299,9 +299,9 @@ Now that you have a managed VM image designed for AKS jumpbox operations, you ca
 
 There is no cost for Azure Image Builder service directly; instead of the costs of the transient resources deployed to the (`IT_`) infrastructure resource group and related network costs comprise the bulk of the cost. See the [Costs](https://docs.microsoft.com/azure/virtual-machines/image-builder-overview#costs) section of the Azure Image Builder service's docs.
 
-## Security
+## :closed_lock_with_key: Security
 
-This jumpbox image and its creation process has not been fully hardened. For example, the jumpbox image is pulling package updates from Ubuntu and Microsoft public servers; Azure CLI, Helm, and Terraform are installed straight from the Internet. Ensure even processes like this adhere to your organizational policies and pull updates from your organization's package servers, and store well-known 3rd party dependencies in trusted locations. If all necessary resources have been brought "network-local" the NSG and Azure Firewall allowances can be made even tighter. Also apply any standard OS hardening procedures your organization requires for privileged access machines. A jumpbox is an attack vector that needs to be considered when evaluating any particular access solution.
+This jumpbox image and its creation process has not been fully hardened. For example, the jumpbox image is pulling package updates from Ubuntu and Microsoft public servers; additionally, Azure CLI, Helm, and Terraform are installed straight from the Internet. Ensure even processes like these adhere to your organizational policies; pulling updates from your organization's package servers, and storing well-known 3rd party dependencies in trusted locations. If all necessary resources have been brought "network-local" the NSG and Azure Firewall allowances can be made even tighter. Also apply any standard OS hardening procedures your organization requires for privileged access machines. A jumpbox is an attack vector that needs to be considered when evaluating any particular access solution.
 
 ## See also
 
