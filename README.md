@@ -69,15 +69,17 @@ The Azure Image Builder service supports hosting the image building process in a
     | Subnet CIDR | HTTPS:`443`   | `management.azure.com`               | Allows AIB VMs to communicate with Azure Management APIs |
     | Subnet CIDR | HTTP:`80`     | `azure.archive.ubuntu.com`           | Allows Packer VM to run apt-get commands      |
     | Subnet CIDR | HTTP:`80`     | `archive.ubuntu.com`                 | Allows Packer VM to run apt-get commands      |
-    | Subnet CIDR | HTTP:`80`<br>HTTPS:`443`  | `packages.microsoft.com` | Allows Packer VM to run apt-get commands      |
+    | Subnet CIDR | HTTP:`80`<br>HTTPS:`443` | `packages.microsoft.com`  | Allows Packer VM to run apt-get commands      |
     | Subnet CIDR | HTTP:`80`     | `security.ubuntu.com`                | Allows Packer VM to run apt-get commands      |
     | Subnet CIDR | HTTPS:`443`   | `azurecliprod.blob.core.windows.net` | Allows Packer VM to get az cli install script |
     | Subnet CIDR | HTTPS:`443`   | `aka.ms`                             | Allows Packer VM to get az cli install script |
     | Subnet CIDR | HTTPS:`443`   | `storage.googleapis.com`             | Allows Packer VM to get kubectl               |
+    | Subnet CIDR | HTTPS:`443`   | `api.github.com`                     | Allows Packer VM to get kubelogin             |
     | Subnet CIDR | HTTPS:`443`   | `github.com`                         | Allows Packer VM to get kubelogin             |
     | Subnet CIDR | HTTPS:`443`   | `raw.githubusercontent.com`          | Allows Packer VM to get helm install script   |
     | Subnet CIDR | HTTPS:`443`   | `get.helm.sh`                        | Allows Packer VM to get helm                  |
     | Subnet CIDR | HTTPS:`443`   | `releases.hashicorp.com`             | Allows Packer VM to get terraform             |
+    | Subnet CIDR | HTTPS:`443`   | `*.s3.amazonaws.com`                 | Allows Packer VM to get terraform             |
     | Subnet CIDR | _as needed_   | _as needed_                          | Any endpoints your image's configuration specification uses as part of the build process. |
 
     For the image built by this repo's specification, your NVA does not need to allow any other _as needed_ outbound access. There are a few additional HTTPS connections made while the two transient AIB VMs boot (e.g. `api.snapcraft.io`, `entropy.ubunutu.com`, `changelogs.ubunutu.com`). Unless you have a specific reason to allow them, those are safe to block and will not prevent this process from functioning. If you don't block UDP connections at the subnet's NSG, you'll also be blocking NTP (`UDP`:`123`) traffic with the above rules. Unless you have a specific reason to allow it, this too is safe to block. NTP is invoked as the two transient AIB VMs boot.
@@ -88,7 +90,7 @@ The Azure Image Builder service supports hosting the image building process in a
     | Action                               | Scope(s)                                       | Reason |
     |--------------------------------------|------------------------------------------------|--------|
     | Ability to create custom azure roles | Subscription                                   | Optional. Used to define least-privileges on the AIB service's managed identity. |
-    | Ability to create role assignments   | Target Virtual Network<br />Final Image Subnet | Used to assign Azure RBAC roles to the AIB service's managed identity. |
+    | Ability to create role assignments   | Target Virtual Network<br>Final Image Subnet | Used to assign Azure RBAC roles to the AIB service's managed identity. |
     | Ability to create resource groups    | Subscription                                   | Optional. Needed if new resource groups are created for this. |
     | Ability to register preview features | Subscription                                   | While AIB is in preview, needed to enable the service. |
     | Contributor                          | Resource Group (with AIB service resources)    | Deploy AIB service resources such as a Managed Identity and Virtual Machine Image Template |
