@@ -80,8 +80,8 @@ The Azure Image Builder service supports hosting the image building process in a
     | Subnet CIDR | HTTPS:`443`   | `github.com`                         | Allows Packer VM to get kubelogin             |
     | Subnet CIDR | HTTPS:`443`   | `raw.githubusercontent.com`          | Allows Packer VM to get helm install script   |
     | Subnet CIDR | HTTPS:`443`   | `get.helm.sh`                        | Allows Packer VM to get helm                  |
+    | Subnet CIDR | HTTPS:`443`   | `*.s3.amazonaws.com`                 | Allows Packer VM to get helm                  |
     | Subnet CIDR | HTTPS:`443`   | `releases.hashicorp.com`             | Allows Packer VM to get terraform             |
-    | Subnet CIDR | HTTPS:`443`   | `*.s3.amazonaws.com`                 | Allows Packer VM to get terraform             |
     | Subnet CIDR | _as needed_   | _as needed_                          | Any endpoints your image's configuration specification uses as part of the build process. |
 
     For the image built by this repo's specification, your NVA does not need to allow any other _as needed_ outbound access. There are a few additional HTTPS connections made while the two transient AIB VMs boot (e.g. `api.snapcraft.io`, `entropy.ubunutu.com`, `changelogs.ubunutu.com`). Unless you have a specific reason to allow them, those are safe to block and will not prevent this process from functioning. If you don't block UDP connections at the subnet's NSG, you'll also be blocking NTP (`UDP`:`123`) traffic with the above rules. Unless you have a specific reason to allow it, this too is safe to block. NTP is invoked as the two transient AIB VMs boot.
@@ -169,7 +169,7 @@ The Azure Image Builder service supports hosting the image building process in a
    Create the resource group, if not already existing. The location identified here will not matter.
 
    ```bash
-   az group create $RESOURCE_GROUP_AIB --location centralus
+   az group create $RESOURCE_GROUP_AIB -l centralus
    ```
 
 1. **Clone this repo locally.** _Optional._
@@ -184,11 +184,11 @@ The Azure Image Builder service supports hosting the image building process in a
 
 1. **Deploy AIB service's Managed Identity and assign Azure RBAC roles.**
 
-   Now you'll deploy the AIB service's Managed Identity, assign it Azure RBAC permissions, and deploy your AKS jumpbox image template. This does not perform the image build, but simply gets the definition of the image deployed to azure as a managed resource, and sets up the AIB service's identity such that it can build the image in its transient compute resources.
+   Now you'll deploy the AIB service's Managed Identity, assign it Azure RBAC permissions, and deploy your AKS jumpbox image template. This does not perform the image build, but simply gets the definition of the image deployed to Azure as a managed resource, and sets up the AIB service's identity such that it can build the image in its transient compute resources.
 
    Option 1: _Requires cloned repo._
 
-   Update the values in `azuredeploy.parameters.json` to align with your environment. Specifically you'll be setting parameter values with the target subnet (from Step 2 above) in which the image will be built from within, what RBAC roles the service's Managed Identity will receive, and where the built image resource will be distributed to.
+   Update the values in `azuredeploy.parameters.json` to align with your environment. Specifically you'll be setting parameter values with the target subnet (from Step 1 above) in which the image will be built from within, what RBAC roles the service's Managed Identity will receive, and where the built image resource will be distributed to.
 
    ```bash
    az deployment group create -g $RESOURCE_GROUP_AIB -f azuredeploy.json -p "@azuredeploy.parameters.json" -n aibaksjumpboximgtemplate
@@ -288,9 +288,9 @@ Now that you have a managed VM image designed for AKS jumpbox operations, you ca
    Delete the Managed Identity. Note, deleting the Managed Identity does NOT remove role assignments to it. See the steps above for removing role assignments used by this identity if retaining the virtual network or virtual machine image longer than the Managed Identity.
 
    ```bash
-   export AIB_MANAGED_IDENTITY_ID=$(az deployment group show -g ${RESOURCE_GROUP_AIB} -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResourceId.value' -o tsv)
+   export AIB_MANAGED_IDENTITY_ID=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResourceId.value' -o tsv)
 
-   az identity delete --ids ${AIB_MANAGED_IDENTITY_ID}
+   az identity delete --ids $AIB_MANAGED_IDENTITY_ID
    ```
 
    Deleting these remaining resources will NOT delete any images created from this template or impact any running compute using the generated VM images.
