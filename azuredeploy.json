@@ -225,6 +225,15 @@
                     },
                     {
                         "type": "Shell",
+                        "name": "Install flux",
+                        "inline": [
+                            "echo \"Starting flux install\"",
+                            "curl -s https://toolkit.fluxcd.io/install.sh | sudo bash",
+                            "echo \"Completed flux install\""
+                        ]
+                    },
+                    {
+                        "type": "Shell",
                         "name": "Install terraform",
                         "inline": [
                             "echo \"Starting terraform install\"",
