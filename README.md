@@ -225,13 +225,13 @@ The Azure Image Builder service supports hosting the image building process in a
 
 1. **Build your jumpbox image.**
 
-   At this point, an VM image can now be constructed by AIB from the deployed image template deployed to the AIB resource group (`RESOURCE_GROUP_AIB`). Invoking the following command will kick off an image build, delivering the final image to the designated resource group defined above (`RESOURCE_GROUP_IMAGE`). This command (or its REST equivalent), is the only mechanism to perform this action. There is no portal experience or dedicated az cli experience at this time.
+   At this point, an VM image can now be constructed by AIB from the deployed image template deployed to the AIB resource group (`RESOURCE_GROUP_AIB`). Invoking the following command will kick off an image build, delivering the final image to the designated resource group defined above (`RESOURCE_GROUP_IMAGE`).
 
    ```bash
    export IMAGE_TEMPLATE_NAME=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.imageTemplateName.value' -o tsv)
 
    # This command may take up to 30 minutes to execute.
-   az resource invoke-action --resource-group $RESOURCE_GROUP_AIB --resource-type Microsoft.VirtualMachineImages/imageTemplates -n $IMAGE_TEMPLATE_NAME --action Run
+   az image builder run -n $IMAGE_TEMPLATE_NAME -g $RESOURCE_GROUP_AIB
    ```
 
    During this process, if you check the `IT_` infrastructure resource group, you'll see the transient resources be created, and once the Packer VM is started, you'll start to see logs in the `packerlogs` container in the storage account created in this resource group.  Once this completes, you now have a custom VM Managed Image resource created in your designated resource group (`RESOURCE_GROUP_IMAGE`). The `IT_` infrastructure resource group will only contain a storage account, as all other transient compute was automatically deprovisioned.
