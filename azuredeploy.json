@@ -237,10 +237,10 @@
                         "name": "Install open service mesh tooling",
                         "inline": [
                             "echo \"Starting OSM install\"",
-                            "wget -c https://github.com/openservicemesh/osm/releases/download/v0.6.1/osm-v0.6.1-linux-amd64.tar.gz -O oms-binary.tar.gz",
-                            "tar -xvf ./oms-binary.tar.gz",
+                            "wget -c https://github.com/openservicemesh/osm/releases/download/v0.6.1/osm-v0.6.1-linux-amd64.tar.gz -O osm-binary.tar.gz",
+                            "tar -xvf ./osm-binary.tar.gz",
                             "sudo mv ./linux-amd64/osm /usr/local/bin/osm",
-                            "rm -Rf ./linux-amd64 oms-binary.tar.gz",
+                            "rm -Rf ./linux-amd64 osm-binary.tar.gz",
                             "echo \"Completed OSM install\""
                         ]
                     },
