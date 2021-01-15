@@ -16,12 +16,12 @@ While these instructions are targeting the building of a general-purpose AKS jum
 
 ## Installed software
 
-* Azure CLI
-* `kubectl` and `kubelogin`
-* Helm
-* Flux v2
-* Open Service Mesh
-* Terraform
+* [Azure CLI](https://docs.microsoft.com/cli/azure/what-is-azure-cli)
+* [kubectl](https://kubernetes.io/docs/reference/kubectl/overview/) and [kubelogin](https://github.com/Azure/kubelogin)
+* [Helm CLI](https://helm.sh)
+* [Flux v2 CLI](https://fluxcd.io)
+* [Open Service Mesh CLI](https://openservicemesh.io)
+* HashiCorp [Terraform CLI](https://www.terraform.io)
 
 ## Isolated build network
 
