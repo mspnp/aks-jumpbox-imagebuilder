@@ -189,6 +189,18 @@
                     },
                     {
                         "type": "Shell",
+                        "name": "Adjust sshd settings.",
+                        "inline": [
+                            "echo \"Starting sshd settings changes\"",
+                            "sudo sed -i 's:^#\\?X11Forwarding yes$:X11Forwarding no:g' /etc/ssh/sshd_config",
+                            "sudo sed -i 's:^#\\?MaxAuthTries [0-9]\\+$:MaxAuthTries 6:g' /etc/ssh/sshd_config",
+                            "sudo sed -i 's:^#\\?PasswordAuthentication yes$:PasswordAuthentication no:g' /etc/ssh/sshd_config",
+                            "sudo sed -i 's:^#\\?PermitRootLogin .\\+$:PermitRootLogin no:g' /etc/ssh/sshd_config",
+                            "echo \"Completed sshd settings changes\""
+                        ]
+                    },
+                    {
+                        "type": "Shell",
                         "name": "Install Azure CLI",
                         "inline": [
                             "echo \"Starting Azure CLI install\"",
