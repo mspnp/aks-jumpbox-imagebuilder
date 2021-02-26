@@ -104,9 +104,7 @@ The Azure Image Builder service supports hosting the image building process in a
     | Ability to create custom azure roles | Subscription                                         | _Optional._ Used to define least-privileges on the AIB service's managed identity. |
     | Ability to create role assignments   | Target Virtual Network<br>Final Image Resource Group | Used to assign Azure RBAC roles to the AIB service's managed identity. |
     | Ability to create resource groups    | Subscription                                         | _Optional._ Needed if new resource groups are created for this.        |
-    | Ability to register preview features | Subscription                                         | While AIB is in preview, needed to enable the service.                 |
     | Contributor                          | Resource Group (with AIB service resources)          | Deploy AIB service resources such as a Managed Identity and Virtual Machine Image Template |
-1. **Ensure you accept the risk of preview features**. Azure Image Builder Service is currently in _Public Preview_ and, as with any preview, the service does not come with support, is subject to breaking changes, and supporting material (such as this repo) is maintained in low-priority manor. For more information, see [Supplemental Terms of Use for Microsoft Azure Previews](https://azure.microsoft.com/support/legal/preview-supplemental-terms/).
 1. **Ensure you're okay with the Azure Marketplace Ubuntu 18.04 LTS as your base image.** Azure Image Builder supports more base OS images than the one selected in this implementation, however images other than the one selected here have not been evaluated with regard to the above networking restrictions. If you choose to use a different base image, you may need to adjust various elements of these instructions.
 1. **Ensure you're okay with an "Infrastructure Resource Group" being created on your behalf.** The Azure Image Builder service will create, be assigned permissions to, and delete a "infrastructure" resource group that is prefixed with `IT_`. This is a requirement for this service and is much like the `MC_` infrastructure resource group for AKS. It will be in existence as long as you keep the virtual machine image template resource deployed.
 
@@ -119,24 +117,6 @@ The Azure Image Builder service supports hosting the image building process in a
    [![Launch Azure Cloud Shell](https://docs.microsoft.com/azure/includes/media/cloud-shell-try-it/launchcloudshell.png)](https://shell.azure.com)
 
    > :bulb: The steps shown here use Bash shell commands. On Windows, you can use the [Windows Subsystem for Linux](https://docs.microsoft.com/windows/wsl/about#what-is-wsl-2) to run Bash.
-
-1. **Enable the Azure Image Builder service** on your subscription. While the Azure Image Builder is in preview, you need to [register the feature](https://docs.microsoft.com/azure/virtual-machines/linux/image-builder#register-the-features).
-
-   ```bash
-   az feature register --namespace Microsoft.VirtualMachineImages --name VirtualMachineTemplatePreview
-   ```
-
-   Wait for the feature to be in the "Registered" state; this may take up to 15 minutes. You can check this status by running the following command.
-
-   ```bash
-   az feature show --namespace Microsoft.VirtualMachineImages --name VirtualMachineTemplatePreview
-   ```
-
-   Once the feature is enabled, re-register the `Microsoft.VirtualMachineImages` provider.
-
-   ```bash
-   az provider register -n Microsoft.VirtualMachineImages
-   ```
 
 ### Perform deployment
 
