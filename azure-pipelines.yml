@@ -1,8 +1,5 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
+# This is for the Microsoft Assessments Build Pipeline. Please don't change without
+# talking to <alias1, alias2>
 trigger:
 - main
 
@@ -10,10 +7,5 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+- script: echo Nothing to do here!
+  displayName: 'Starting AzDO Build'
