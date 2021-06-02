@@ -1,6 +1,6 @@
 # Azure Kubernetes Service (AKS) Jump Box Builder
 
-Nowadays it is paramount for many organizations to restrict network access to their AKS cluster's control plane (API Server) to reduce the surface of attack and at the same time being compliance with regulations in their respective industries. This is done via the AKS [authorized IP range](https://docs.microsoft.com/azure/aks/api-server-authorized-ip-ranges) feature or the [AKS private cluster](https://docs.microsoft.com/azure/aks/private-clusters) offering. This often means that a cluster operator can no longer perform administrative actions against the cluster directly from all networks but permitted addresses only. A common solution is to use designated virtual machines, residing on a subnet with a particular address range that has been granted sufficient network line of sight to the AKS API server and/or nodepool nodes.
+Nowadays it is paramount for many organizations to restrict network access to their AKS cluster's control plane (API Server) to reduce the surface of attack and at the same time being compliance with regulations in their respective industries. This is done via the AKS [authorized IP range](https://docs.microsoft.com/azure/aks/api-server-authorized-ip-ranges) feature or the [AKS private cluster](https://docs.microsoft.com/azure/aks/private-clusters) offering. This often means that a cluster operator can no longer perform administrative actions against the cluster directly from all networks but permitted addresses only. A common solution is to use designated virtual machines, residing on a subnet with a particular address range that has been granted sufficient network line of sight to the AKS API server and/or node pool nodes.
 
 These virtual machines are access points, typically called jump boxes, which are meant to be used at various times in the lifecycle of a cluster; most notably in break-fix situations. When a high severity issue is happening, operators want immediate access to resolve the issue efficiently. This means that the jump box should include all of your expected triage & mitigation tooling and be highly available. However, because it has network line-of-sight to your cluster's control plane, it needs to be a governed/observable resource and is also considered a new attack vector for your cluster.
 
@@ -127,12 +127,14 @@ The Azure Image Builder service supports hosting the image building process in a
    * Subnet's Resource Group Name (e.g. `rg-enterprise-networking-spokes`)
    * Subnet's Azure Region (e.g. `eastus2`)
 
-   [//]: # (An example of a network that satisfies all networking requirements and is maximally locked down can be found in the !!!TODO LINK TO REGULATED AKS WORK!!!. If you deploy that example up and through the "Networking" steps, you'll have a subnet, NSG, and egress firewall you can use as a starting point for the remaining steps.)
+   An example of a network that satisfies all networking requirements and is maximally locked down can be found in the [AKS Baseline for Regulated Workloads](https://github.com/mspnp/aks-baseline-regulated). If you deploy that example up and through the "Networking" steps, you'll have a subnet, NSG, and egress firewall you can use as a starting point for the remaining steps.
 
    **To simply try this out in a pre-production environment without added network rules, you can simply choose/create a `/28` (or larger) subnet that has no associated NSG or outbound egress firewall rules.**
 
    ```bash
    az network vnet create -g rg-enterprise-networking-spokes -n vnet-imagebuilder --address-prefix 10.0.0.0/28 --subnet-name snet-imagebuilder -l eastus2
+
+   az network vnet subnet update -g rg-enterprise-networking-spokes --vnet-name vnet-imagebuilder -n snet-imagebuilder --disable-private-link-service-network-policies true
    ```
 
 1. **Deploy Azure RBAC custom roles.** _Optional._
@@ -220,7 +222,7 @@ The Azure Image Builder service supports hosting the image building process in a
    export IMAGE_TEMPLATE_NAME=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.imageTemplateName.value' -o tsv)
 
    # This command may take up to 30 minutes to execute.
-   az image builder run -n $IMAGE_TEMPLATE_NAME -g $RESOURCE_GROUP_AIB
+   az image builder run -g $RESOURCE_GROUP_AIB -n $IMAGE_TEMPLATE_NAME
    ```
 
    During this process, if you check the `IT_` infrastructure resource group, you'll see the transient resources be created, and once the Packer VM is started, you'll start to see logs in the `packerlogs` container in the storage account created in this resource group.  Once this completes, you now have a custom VM Managed Image resource created in your designated resource group (`RESOURCE_GROUP_IMAGE`). The `IT_` infrastructure resource group will only contain a storage account, as all other transient compute was automatically deprovisioned.
@@ -229,7 +231,7 @@ The Azure Image Builder service supports hosting the image building process in a
 
 ## :heavy_check_mark: Try your image
 
-Now that you have a managed VM image designed for AKS jump box operations, you can create a Virtual Machine or Virtual Machine Scale Set based off of that image. Simply place that compute in a secured subnet with network line-of-sight to your AKS Cluster API Server (and/or nodepool nodes), provide your user(s) & SSH public key(s), and connect to Azure Monitor for host and log capture. Once running, you can connect to your VM or a VMSS instance jump box via Azure Bastion. Once connected; `az login` and validate connectivity to your AKS cluster and expected resources.
+Now that you have a managed VM image designed for AKS jump box operations, you can create a Virtual Machine or Virtual Machine Scale Set based off of that image. Simply place that compute in a secured subnet with network line-of-sight to your AKS Cluster API Server (and/or node pool nodes), provide your user(s) & SSH public key(s), and connect to Azure Monitor for host and log capture. Once running, you can connect to your VM or a VMSS instance jump box via Azure Bastion. Once connected; `az login` and validate connectivity to your AKS cluster and expected resources.
 
 ## :broom: Clean up resources
 
