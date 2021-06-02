@@ -179,12 +179,12 @@
                 "customize": [
                     {
                         "type": "Shell",
-                        "name": "Install Update Installed Packages",
+                        "name": "Update Installed Packages",
                         "inline": [
-                            "echo \"Starting apt-get update/dist-upgrade\"",
+                            "echo \"Starting apt-get update/upgrade\"",
                             "sudo apt-get -yq update",
-                            "sudo apt-get -yq dist-upgrade",
-                            "echo \"Completed apt-get update/dist-upgrade\""
+                            "sudo apt-get -yq upgrade",
+                            "echo \"Completed apt-get update/upgrade\""
                         ]
                     },
                     {
@@ -240,16 +240,16 @@
                         "name": "Install flux",
                         "inline": [
                             "echo \"Starting flux install\"",
-                            "curl -s https://toolkit.fluxcd.io/install.sh | sudo bash",
+                            "curl -s https://fluxcd.io/install.sh | sudo bash",
                             "echo \"Completed flux install\""
                         ]
                     },
                     {
                         "type": "Shell",
-                        "name": "Install open service mesh tooling",
+                        "name": "Install Open Service Mesh tooling",
                         "inline": [
                             "echo \"Starting OSM install\"",
-                            "wget -c https://github.com/openservicemesh/osm/releases/download/v0.6.1/osm-v0.6.1-linux-amd64.tar.gz -O osm-binary.tar.gz",
+                            "wget -c https://github.com/openservicemesh/osm/releases/download/v0.8.4/osm-v0.8.4-linux-amd64.tar.gz -O osm-binary.tar.gz",
                             "tar -xvf ./osm-binary.tar.gz",
                             "sudo mv ./linux-amd64/osm /usr/local/bin/osm",
                             "rm -Rf ./linux-amd64 osm-binary.tar.gz",
@@ -258,14 +258,14 @@
                     },
                     {
                         "type": "Shell",
-                        "name": "Install terraform",
+                        "name": "Install Terraform",
                         "inline": [
-                            "echo \"Starting terraform install\"",
+                            "echo \"Starting Terraform install\"",
                             "sudo apt-get -yq install unzip",
-                            "curl -LO https://releases.hashicorp.com/terraform/0.14.3/terraform_0.14.3_linux_amd64.zip",
-                            "sudo unzip terraform_0.14.3_linux_amd64.zip -d /usr/local/bin",
-                            "rm -f terraform_0.14.3_linux_amd64.zip",
-                            "echo \"Completed terraform install\""
+                            "curl -LO https://releases.hashicorp.com/terraform/0.15.4/terraform_0.15.4_linux_amd64.zip",
+                            "sudo unzip terraform_0.15.4_linux_amd64.zip -d /usr/local/bin",
+                            "rm -f terraform_0.15.4_linux_amd64.zip",
+                            "echo \"Completed Terraform install\""
                         ]
                     }
                 ]
