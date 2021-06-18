@@ -90,7 +90,7 @@ The Azure Image Builder service supports hosting the image building process in a
     | Subnet CIDR | HTTPS:`443`   | `github.com`                         | Allows Packer VM to get kubelogin and osm     |
     | Subnet CIDR | HTTPS:`443`   | `raw.githubusercontent.com`          | Allows Packer VM to get helm install script   |
     | Subnet CIDR | HTTPS:`443`   | `get.helm.sh`                        | Allows Packer VM to get helm                  |
-    | Subnet CIDR | HTTPS:`443`   | `toolkit.fluxcd.io`                  | Allows Packer VM to get flux                  |
+    | Subnet CIDR | HTTPS:`443`   | `fluxcd.io`                          | Allows Packer VM to get flux                  |
     | Subnet CIDR | HTTPS:`443`   | `releases.hashicorp.com`             | Allows Packer VM to get terraform             |
     | Subnet CIDR | _as needed_   | _as needed_                          | Any endpoints your image's configuration specification uses as part of the build process. |
 
