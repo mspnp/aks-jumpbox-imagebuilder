@@ -262,9 +262,9 @@
                         "inline": [
                             "echo \"Starting Terraform install\"",
                             "sudo apt-get -yq install unzip",
-                            "curl -LO https://releases.hashicorp.com/terraform/0.15.4/terraform_0.15.4_linux_amd64.zip",
-                            "sudo unzip terraform_0.15.4_linux_amd64.zip -d /usr/local/bin",
-                            "rm -f terraform_0.15.4_linux_amd64.zip",
+                            "curl -LO https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip",
+                            "sudo unzip -o terraform_1.0.0_linux_amd64.zip -d /usr/local/bin",
+                            "rm -f terraform_1.0.0_linux_amd64.zip",
                             "echo \"Completed Terraform install\""
                         ]
                     }
