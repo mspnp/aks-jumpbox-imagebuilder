@@ -183,7 +183,7 @@
                         "inline": [
                             "echo \"Starting apt-get update/upgrade\"",
                             "sudo apt-get -yq update",
-                            "sudo apt-get -yq upgrade",
+                            "# sudo apt-get -yq upgrade",
                             "echo \"Completed apt-get update/upgrade\""
                         ]
                     },
