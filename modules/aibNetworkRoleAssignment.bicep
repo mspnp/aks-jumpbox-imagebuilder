@@ -6,9 +6,9 @@ targetScope = 'resourceGroup'
 @minLength(1)
 param targetVirtualNetworkName string
 
-@description('Required. The resource ID of the Azure Image Builder service\'s user managed identity that needs to join compute into the virtual network.')
-@minLength(80)
-param aibManagedIdentityResourceId string
+@description('Required. The principal object ID of the Azure Image Builder service\'s user managed identity that needs to join compute into the virtual network.')
+@minLength(36)
+param aibManagedIdentityPrincipalId string
 
 @description('Required. The resource ID of the role definition to be assigned to the managed identity to support the networking operations.')
 @minLength(80)
@@ -24,11 +24,11 @@ resource vnetBuilder 'Microsoft.Network/virtualNetworks@2021-05-01' existing = {
 /*** RESOURCES ***/
 
 @description('Grants AIB required networking permissions. Validated at image template creation time.')
-resource networkRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-10-01-preview' = {
-  name: guid(vnetBuilder.id, aibManagedIdentityResourceId, aibNetworkRoleDefinitionResourceId)
+resource networkRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
+  name: guid(vnetBuilder.id, aibManagedIdentityPrincipalId, aibNetworkRoleDefinitionResourceId)
   scope: vnetBuilder
   properties: {
-    principalId: aibManagedIdentityResourceId
+    principalId: aibManagedIdentityPrincipalId
     roleDefinitionId: aibNetworkRoleDefinitionResourceId
     description: 'Grants AIB required networking permissions. Validated at image template creation time.'
     principalType: 'ServicePrincipal'

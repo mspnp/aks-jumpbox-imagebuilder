@@ -11,7 +11,7 @@ param location string
 param imageTemplateName string = 'imgt-askopsjb-${utcNow('yyyyMMddTHHmmss')}'
 
 @description('Required. The subnet name found within the designated Virtual Network in which image builds will take place.')
-@minLength(80)
+@minLength(120)
 param existingSubnetResourceId string
 
 @description('The name of the exisiting Resource Group in which the managed VM image resource will be deployed to. It can be the same as this deployment\'s Resource Group and/or the vnet Resource Group.')
@@ -23,27 +23,27 @@ param imageDestinationResourceGroupName string
 param imageName string = 'img-aksopsjb-${utcNow('yyyyMMddTHHmmss')}'
 
 @description('Required. Ideally the custom Azure Image Builder Service Network Joiner role, otherwise should be Network Contributor role guid.')
-@minLength(37)
-@maxLength(37)
+@minLength(36)
+@maxLength(36)
 param imageBuilderNetworkingRoleGuid string
 
 @description('Required. Ideally the custom Image Contributor role, otherwise should be Contributor role guid.')
-@minLength(37)
-@maxLength(37)
+@minLength(36)
+@maxLength(36)
 param imageBuilderImageCreationRoleGuid string
 
 /*** EXISTING RESOURCES ***/
 
 @description('The resource group name containing virtual network in which Azure Image Builder will drop the compute into to perform the image build.')
-resource buildVirutalNetworkResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
+resource rgBuilderVirutalNetwork 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
   scope: subscription()
-  name: split(existingSubnetResourceId, '/')[3]
+  name: split(existingSubnetResourceId, '/')[4]
 }
 
 @description('The virtual network in which Azure Image Builder will drop the compute into to perform the image build.')
-resource buildVirtualNetwork 'Microsoft.Network/virtualNetworks@2021-05-01' existing = {
-  scope: buildVirutalNetworkResourceGroup
-  name: split(existingSubnetResourceId, '/')[5]
+resource vnetBuilder 'Microsoft.Network/virtualNetworks@2021-05-01' existing = {
+  scope: rgBuilderVirutalNetwork
+  name: split(existingSubnetResourceId, '/')[8]
 
   resource buildSubnet 'subnets@2021-05-01' existing = {
     name: last(split(existingSubnetResourceId, '/'))
@@ -65,7 +65,7 @@ resource imageBuilderImageCreationRoleDefinition 'Microsoft.Authorization/roleDe
 @description('The resource gorup that will be the destination for the virtual machine image.')
 resource rgImageDestination 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
   scope: subscription()
-  name: 'imageDestinationResourceGroup'
+  name: imageDestinationResourceGroupName
 }
 
 /*** EXISTING RESOURCES ***/
@@ -82,21 +82,22 @@ module applyAibImageWriterRoleToDestinationRg 'modules/aibImageWriteRoleAssignme
   scope: rgImageDestination
   params: {
     aibImageCreatorRoleDefinitionResourceId: imageBuilderImageCreationRoleDefinition.id
-    aibManagedIdentityResourceId: aibUserManagedIdentity.id
+    aibManagedIdentityPrincipalId: aibUserManagedIdentity.properties.principalId
   }
 }
 
 @description('Grants the managed identity the ability to join the image building compute into the destinated subnet.')
 module applyAibNetworkingRoleToBuilderVirtualNetwork 'modules/aibNetworkRoleAssignment.bicep' = {
   name: 'applyAibNetworkRoleToVnet'
+  scope: rgBuilderVirutalNetwork
   params: {
-    aibManagedIdentityResourceId: aibUserManagedIdentity.id
+    aibManagedIdentityPrincipalId: aibUserManagedIdentity.properties.principalId
     aibNetworkRoleDefinitionResourceId: imageBuilderNetworkingRoleDefinition.id
-    targetVirtualNetworkName: buildVirtualNetwork.name
+    targetVirtualNetworkName: vnetBuilder.name
   }
 }
 
-@description('This is the image spec for our jumpbox. This template can be used to build VM images as needed.')
+@description('This is the image spec for our general purpose AKS jump box. This template can be used to build VM images as needed.')
 resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-01' = {
   name: imageTemplateName
   location: location
@@ -107,7 +108,7 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${aibUserManagedIdentity}': {}
+      '${aibUserManagedIdentity.id}': {}
     }
   }
   properties: {
@@ -116,7 +117,7 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
       osDiskSizeGB: 32
       vmSize: 'Standard_D2ds_v4'
       vnetConfig: {
-        subnetId: buildVirtualNetwork::buildSubnet.id
+        subnetId: vnetBuilder::buildSubnet.id
         proxyVmSize: 'Standard_D2ds_v4'
       }
     }
