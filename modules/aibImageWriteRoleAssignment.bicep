@@ -12,7 +12,6 @@ param aibImageCreatorRoleDefinitionResourceId string
 
 /*** RESOURCES ***/
 
-@description('Grants AIB required permissions to write final jump box image in designated resource group.')
 resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
   name: guid(resourceGroup().id, aibManagedIdentityPrincipalId, aibImageCreatorRoleDefinitionResourceId)
   scope: resourceGroup()

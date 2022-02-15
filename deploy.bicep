@@ -2,17 +2,27 @@ targetScope = 'resourceGroup'
 
 /*** PARAMETERS ***/
 
-@description('Required. The location of the Virtual Network in which image builds will take place.')
+@description('The existing subnet resource ID to which the image build compute will join and the build will be conducted from within. This subnet should have appropriate NSG and firewall rules to support the image building process.')
+@minLength(120)
+param buildInSubnetResourceId string
+
+@description('The location of the Virtual Network in which image builds will take place.')
 @minLength(1)
 param location string
 
+@description('Ideally the custom Azure Image Builder Service Network Joiner role, otherwise should be Network Contributor role guid.')
+@minLength(36)
+@maxLength(36)
+param imageBuilderNetworkingRoleGuid string
+
+@description('Ideally the custom Image Contributor role, otherwise should be Contributor role guid.')
+@minLength(36)
+@maxLength(36)
+param imageBuilderImageCreationRoleGuid string
+
 @description('Optional. Set the output name for the image template resource, needs to be unique within the resource group.')
 @minLength(1)
-param imageTemplateName string = 'imgt-askopsjb-${utcNow('yyyyMMddTHHmmss')}'
-
-@description('Required. The subnet name found within the designated Virtual Network in which image builds will take place.')
-@minLength(120)
-param existingSubnetResourceId string
+param imageTemplateName string = 'imgt-aksopsjb-${utcNow('yyyyMMddTHHmmss')}'
 
 @description('The name of the exisiting Resource Group in which the managed VM image resource will be deployed to. It can be the same as this deployment\'s Resource Group and/or the vnet Resource Group.')
 @minLength(1)
@@ -22,31 +32,21 @@ param imageDestinationResourceGroupName string
 @minLength(1)
 param imageName string = 'img-aksopsjb-${utcNow('yyyyMMddTHHmmss')}'
 
-@description('Required. Ideally the custom Azure Image Builder Service Network Joiner role, otherwise should be Network Contributor role guid.')
-@minLength(36)
-@maxLength(36)
-param imageBuilderNetworkingRoleGuid string
-
-@description('Required. Ideally the custom Image Contributor role, otherwise should be Contributor role guid.')
-@minLength(36)
-@maxLength(36)
-param imageBuilderImageCreationRoleGuid string
-
 /*** EXISTING RESOURCES ***/
 
 @description('The resource group name containing virtual network in which Azure Image Builder will drop the compute into to perform the image build.')
 resource rgBuilderVirutalNetwork 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
   scope: subscription()
-  name: split(existingSubnetResourceId, '/')[4]
+  name: split(buildInSubnetResourceId, '/')[4]
 }
 
 @description('The virtual network in which Azure Image Builder will drop the compute into to perform the image build.')
 resource vnetBuilder 'Microsoft.Network/virtualNetworks@2021-05-01' existing = {
   scope: rgBuilderVirutalNetwork
-  name: split(existingSubnetResourceId, '/')[8]
+  name: split(buildInSubnetResourceId, '/')[8]
 
   resource buildSubnet 'subnets@2021-05-01' existing = {
-    name: last(split(existingSubnetResourceId, '/'))
+    name: last(split(buildInSubnetResourceId, '/'))
   }
 }
 
@@ -68,7 +68,7 @@ resource rgImageDestination 'Microsoft.Resources/resourceGroups@2021-04-01' exis
   name: imageDestinationResourceGroupName
 }
 
-/*** EXISTING RESOURCES ***/
+/*** RESOURCES ***/
 
 @description('Azure Image Builder (AIB) executes as this identity.')
 resource aibUserManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
@@ -144,100 +144,100 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
           'echo "Starting "apt-get update/upgrade"'
           'sudo apt-get -yq update'
           '#sudo apt-get -yq upgrade'
-          'echo "Completed "apt-get update/ugrade"'
+          'echo "Completed "apt-get update/upgrade"'
         ]
       }
       {
         type: 'Shell'
         name: 'Adjust sshd settings.'
         inline: [
-          'echo "Starting "sshd settings changes"'
+          'echo "Starting sshd settings changes"'
           'sudo sed -i \'s:^#\\?X11Forwarding yes$:X11Forwarding no:g\' /etc/ssh/sshd_config'
           'sudo sed -i \'s:^#\\?MaxAuthTries [0-9]\\+$:MaxAuthTries 6:g\' /etc/ssh/sshd_config'
           'sudo sed -i \'s:^#\\?PasswordAuthentication yes$:PasswordAuthentication no:g\' /etc/ssh/sshd_config'
           'sudo sed -i \'s:^#\\?PermitRootLogin .\\+$:PermitRootLogin no:g\' /etc/ssh/sshd_config'
-          'echo "Completed "sshd settings changes"'
+          'echo "Completed sshd settings changes"'
         ]
       }
       {
         type: 'Shell'
         name: 'Install Azure CLI'
         inline: [
-          'echo "Starting "Azure CLI install"'
+          'echo "Starting Azure CLI install"'
           'curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash'
-          'echo "Completed "Azure CLI install"'
+          'echo "Completed Azure CLI install"'
         ]
       }
       {
         type: 'Shell'
         name: 'Install Azure CLI extensions'
         inline: [
-          'echo "Starting "AZ CLI extension add"'
+          'echo "Starting AZ CLI extension add"'
           'sudo az extension add -n aks-preview'
-          'echo "Completed "AZ CLI extension add"'
+          'echo "Completed AZ CLI extension add"'
         ]
       }
       {
         type: 'Shell'
         name: 'Install kubectl and kubelogin'
         inline: [
-          'echo "Starting "kubectl install"'
+          'echo "Starting kubectl install"'
           'sudo az aks install-cli'
-          'echo "Completed "kubectl install"'
+          'echo "Completed kubectl install"'
         ]
       }
       {
         type: 'Shell'
         name: 'Install helm'
         inline: [
-          'echo "Starting "helm install"'
+          'echo "Starting helm install"'
           'curl -s https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | sudo bash'
-          'echo "Completed "helm install"'
+          'echo "Completed helm install"'
         ]
       }
       {
         type: 'Shell'
         name: 'Install flux'
         inline: [
-          'echo "Starting "flux install"'
+          'echo "Starting flux install"'
           'curl -s https://fluxcd.io/install.sh | sudo bash'
-          'echo "Completed "flux install"'
+          'echo "Completed flux install"'
         ]
       }
       {
         type: 'Shell'
         name: 'Install workload identity tooling'
         inline: [
-          'echo "Starting "k8s workload identity CLI install"'
+          'echo "Starting k8s workload identity CLI install"'
           'wget -c https://github.com/Azure/azure-workload-identity/releases/download/v0.8.0/azwi-v0.8.0-linux-amd64.tar.gz -O azwi-binary.tar.gz'
           'tar -xvf ./azwi-binary.tar.gz azwi'
           'sudo mv azwi /usr/local/bin/azwi'
           'rm -Rf azwi azwi-binary.tar.gz'
-          'echo "Completed "k8s workload identity CLI install"'
+          'echo "Completed k8s workload identity CLI install"'
         ]
       }
       {
         type: 'Shell'
         name: 'Install Open Service Mesh tooling'
         inline: [
-          'echo "Starting "OSM install"'
+          'echo "Starting OSM install"'
           'wget -c https://github.com/openservicemesh/osm/releases/download/v1.0.0/osm-v1.0.0-linux-amd64.tar.gz -O osm-binary.tar.gz'
           'tar -xvf ./osm-binary.tar.gz'
           'sudo mv ./linux-amd64/osm /usr/local/bin/osm'
           'rm -Rf ./linux-amd64 osm-binary.tar.gz'
-          'echo "Completed "OSM install"'
+          'echo "Completed OSM install"'
         ]
       }
       {
         type: 'Shell'
         name: 'Install Terraform'
         inline: [
-          'echo "Starting "Terraform install"'
+          'echo "Starting Terraform install"'
           'sudo apt-get -yq install unzip'
           'curl -LO https://releases.hashicorp.com/terraform/1.1.5/terraform_1.1.5_linux_amd64.zip'
           'sudo unzip -o terraform_1.1.5_linux_amd64.zip -d /usr/local/bin'
           'rm -f terraform_1.1.5_linux_amd64.zip'
-          'echo "Completed "Terraform install"'
+          'echo "Completed Terraform install"'
         ]
       }
     ]
@@ -246,4 +246,9 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
 
 /*** OUTPUTS ***/
 
+output vnetResourceId string = vnetBuilder.id
 output imageTemplateName string = imageTemplateName
+output imageName string = imageName
+output distributedImageResourceId string = imgtJumpBoxSpec.properties.distribute[0].imageId
+output builderIdentityResource object = aibUserManagedIdentity
+output builderIdentityResourceId string = aibUserManagedIdentity.id

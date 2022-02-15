@@ -23,7 +23,6 @@ resource vnetBuilder 'Microsoft.Network/virtualNetworks@2021-05-01' existing = {
 
 /*** RESOURCES ***/
 
-@description('Grants AIB required networking permissions. Validated at image template creation time.')
 resource networkRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
   name: guid(vnetBuilder.id, aibManagedIdentityPrincipalId, aibNetworkRoleDefinitionResourceId)
   scope: vnetBuilder
