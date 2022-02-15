@@ -145,7 +145,7 @@ The Azure Image Builder service supports hosting the image building process in a
    Deploy the two custom Azure RBAC roles to the subscription that define the **least privilege permissions necessary** for Azure Image Builder to build and distribute an image. If you do not perform this step, you'll need to provide more permissive role assignments than necessary in a future step.
 
    ```bash
-   az deployment sub create -u https://raw.githubusercontent.com/mspnp/aks-jumpbox-imagebuilder/main/createsubscriptionroles.json -l centralus -n aibcustomroles
+   az deployment sub create -f createsubscriptionroles.bicep -l centralus -n aibcustomroles
 
    NETWORK_CONTRIBUTOR_ROLE=$(az deployment sub show -n aibcustomroles --query 'properties.outputs.roleResourceIds.value.customImageBuilderNetworkingRole.guid' -o tsv)
    IMAGE_CONTRIBUTOR_ROLE=$(az deployment sub show -n aibcustomroles --query 'properties.outputs.roleResourceIds.value.customImageBuilderImageCreationRole.guid' -o tsv)
