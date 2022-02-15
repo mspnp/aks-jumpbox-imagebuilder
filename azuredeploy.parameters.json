@@ -3,19 +3,19 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "buildInSubnetResourceId": {
-            "value": "/subscriptions/[id]/resourceGroups/rg-enterprise-networking-spokes/providers/Microsoft.Network/virtualNetworks/vnet-imagebuilder-eastus/subnets/snet-imagebuilder"
+            "value": "/subscriptions/[id]/resourceGroups/rg-enterprise-networking-spokes/providers/Microsoft.Network/virtualNetworks/vnet-imagebuilder/subnets/snet-imagebuilder"
         },
         "location": {
             "value": "eastus2"
         },
         "imageBuilderNetworkingRoleGuid": {
-            "value": "value of $NETWORK_CONTRIBUTOR_ROLE or 4d97b98b-1d4f-4787-a291-c67834d212e7"
+            "value": "Put NETWORK_CONTRIBUTOR_ROLE or 4d97b98b-1d4f-4787-a291-c67834d212e7 Here" // Must use "Network Contributor" (4d97b98b-1d4f-4787-a291-c67834d212e7) if custom role not defined
         },
         "imageBuilderImageCreationRoleGuid": {
-            "value": "value of $IMAGE_CONTRIBUTOR_ROLE or ac109ea1-94d0-56ec-8552-c7a15e144636"
+            "value": "Put IMAGE_CONTRIBUTOR_ROLE or b24988ac-6180-42a0-ab88-20f7382dd24c Here" // Must use "Contributor" (b24988ac-6180-42a0-ab88-20f7382dd24c) if custom role not defined
         },
         "imageDestinationResourceGroupName": {
-            "value": "rg-imagebuilders"
+            "value": "rg-mycluster"
         }
     }
 }
