@@ -243,3 +243,7 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
     ]
   }
 }
+
+/*** OUTPUTS ***/
+
+output imageTemplateName string = imageTemplateName

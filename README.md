@@ -75,25 +75,27 @@ The Azure Image Builder service supports hosting the image building process in a
    1. The subnet must be located in one of the following regions: East US, East US 2, West Central US, West US, West US 2, North Europe, West Europe.
 1. **Your subnet's _egress_ firewall _(if any)_ must be at least as permissive as the following.** This is in addition to the built-in ["Azure infrastructure FQDNs" rule that is found in Azure Firewall](https://docs.microsoft.com/azure/firewall/infrastructure-fqdns).
 
-    | Source      | Protocol:Port | Target FQDNs                         | Reason  |
-    |-------------|---------------|--------------------------------------|---------|
-    | Subnet CIDR | HTTPS:`443`   | `*.blob.core.windows.net`            | AIB will dynamically create a blob storage account when an image is being built. The AIB operation logs will be stored in that storage account. Along with other transient runtime usage, and the final image will be staged in there as well. It's not possible to know the name of this storage account ahead of time to make this rule more specific. |
-    | Subnet CIDR | HTTPS:`443`   | `management.azure.com`               | Allows AIB VMs to communicate with Azure Management APIs |
-    | Subnet CIDR | HTTP:`80`     | `azure.archive.ubuntu.com`           | Allows Packer VM to run apt-get commands      |
-    | Subnet CIDR | HTTP:`80`     | `archive.ubuntu.com`                 | Allows Packer VM to run apt-get commands      |
-    | Subnet CIDR | HTTP:`80`<br>HTTPS:`443` | `packages.microsoft.com`  | Allows Packer VM to run apt-get commands      |
-    | Subnet CIDR | HTTP:`80`     | `security.ubuntu.com`                | Allows Packer VM to run apt-get commands      |
-    | Subnet CIDR | HTTPS:`443`   | `azurecliprod.blob.core.windows.net` | Allows Packer VM to get az cli install script |
-    | Subnet CIDR | HTTPS:`443`   | `aka.ms`                             | Allows Packer VM to get az cli install script |
-    | Subnet CIDR | HTTPS:`443`   | `storage.googleapis.com`             | Allows Packer VM to get kubectl               |
-    | Subnet CIDR | HTTPS:`443`   | `api.github.com`                     | Allows Packer VM to get kubelogin and flux    |
-    | Subnet CIDR | HTTPS:`443`   | `github-releases.githubusercontent.com` | Allows Packer VM to get kubelogin, flux, osm, helm |
-    | Subnet CIDR | HTTPS:`443`   | `github.com`                         | Allows Packer VM to get kubelogin and osm     |
-    | Subnet CIDR | HTTPS:`443`   | `raw.githubusercontent.com`          | Allows Packer VM to get helm install script   |
-    | Subnet CIDR | HTTPS:`443`   | `get.helm.sh`                        | Allows Packer VM to get helm                  |
-    | Subnet CIDR | HTTPS:`443`   | `fluxcd.io`                          | Allows Packer VM to get flux                  |
-    | Subnet CIDR | HTTPS:`443`   | `releases.hashicorp.com`             | Allows Packer VM to get terraform             |
-    | Subnet CIDR | _as needed_   | _as needed_                          | Any endpoints your image's configuration specification uses as part of the build process. |
+    **Source:** Your Azure Image Builder subnet
+
+    | Protocol:Port | Target FQDNs                         | Reason  |
+    |---------------|--------------------------------------|---------|
+    | HTTPS:`443`   | `*.blob.core.windows.net`            | AIB will dynamically create a blob storage account when an image is being built. The AIB operation logs will be stored in that storage account. Along with other transient runtime usage, and the final image will be staged in there as well. It's not possible to know the name of this storage account ahead of time to make this rule more specific. |
+    | HTTPS:`443`   | `management.azure.com`               | Allows AIB VMs to communicate with Azure Management APIs |
+    | HTTP:`80`     | `azure.archive.ubuntu.com`           | Allows Packer VM to run apt-get commands      |
+    | HTTP:`80`     | `archive.ubuntu.com`                 | Allows Packer VM to run apt-get commands      |
+    | HTTP:`80`<br>HTTPS:`443` | `packages.microsoft.com`  | Allows Packer VM to run apt-get commands      |
+    | HTTP:`80`     | `security.ubuntu.com`                | Allows Packer VM to run apt-get commands      |
+    | HTTPS:`443`   | `azurecliprod.blob.core.windows.net` | Allows Packer VM to get az cli install script |
+    | HTTPS:`443`   | `aka.ms`                             | Allows Packer VM to get az cli install script |
+    | HTTPS:`443`   | `storage.googleapis.com`             | Allows Packer VM to get kubectl               |
+    | HTTPS:`443`   | `api.github.com`                     | Allows Packer VM to get kubelogin and flux    |
+    | HTTPS:`443`   | `github-releases.githubusercontent.com` | Allows Packer VM to get kubelogin, flux, osm, helm |
+    | HTTPS:`443`   | `github.com`                         | Allows Packer VM to get kubelogin and osm     |
+    | HTTPS:`443`   | `raw.githubusercontent.com`          | Allows Packer VM to get helm install script   |
+    | HTTPS:`443`   | `get.helm.sh`                        | Allows Packer VM to get helm                  |
+    | HTTPS:`443`   | `fluxcd.io`                          | Allows Packer VM to get flux                  |
+    | HTTPS:`443`   | `releases.hashicorp.com`             | Allows Packer VM to get terraform             |
+    | _as needed_   | _as needed_                          | Any endpoints your image's configuration specification uses as part of the build process. |
 
     For the image built by this repo's specification, your NVA does not need to allow any other _as needed_ outbound access. There are a few additional HTTPS connections made while the two transient AIB VMs boot (e.g. `api.snapcraft.io`, `entropy.ubunutu.com`, `changelogs.ubunutu.com`). Unless you have a specific reason to allow them, those are safe to block and will not prevent this process from functioning. If you don't block UDP connections at the subnet's NSG, you'll also be blocking NTP (`UDP`:`123`) traffic with the above rules. Unless you have a specific reason to allow it, this too is safe to block. NTP is invoked as the two transient AIB VMs boot.
 
@@ -184,9 +186,9 @@ The Azure Image Builder service supports hosting the image building process in a
    Update the values in `azuredeploy.parameters.json` to align with your environment. Specifically you'll be setting parameter values with the target subnet (from Step 1 above) in which the image will be built from within, what RBAC roles the service's Managed Identity will receive, and where the built image resource will be distributed to.
 
    ```bash
-   
-az deployment group create -g $RESOURCE_GROUP_AIB -f azuredeploy.json -p "@azuredeploy.parameters.json" -n aibaksjumpboximgtemplate
-   export RESOURCE_GROUP_IMAGE=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.parameters.imageDestinationResourceGroupName.value' -o tsv)
+   az deployment group create -g $RESOURCE_GROUP_AIB -f azuredeploy.json -p "@azuredeploy.parameters.json" -n aibaksjumpboximgtemplate
+
+   RESOURCE_GROUP_IMAGE=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.parameters.imageDestinationResourceGroupName.value' -o tsv)
    ```
 
    Option 2:
@@ -194,13 +196,13 @@ az deployment group create -g $RESOURCE_GROUP_AIB -f azuredeploy.json -p "@azure
    Deploy without parameters file, setting the values below as appropriate. The first our are target virtual network values, the next two are the custom role ids (or fallbacks if custom roles are not able to be used), and the final is the resource group you wish the built managed image resource to be deployed to.
 
    ```bash
-   export RESOURCE_GROUP_VNET="rg-enterprise-networking-spokes"
-   export VNET_NAME="vnet-imagebuilder"
-   export SNET_NAME="snet-imagebuilder"
-   export VNET_LOCATION="eastus2"
-   export NETWORK_CONTRIBUTOR_ROLE=$(NETWORK_CONTRIBUTOR_ROLE:-4d97b98b-1d4f-4787-a291-c67834d212e7) # Use custom role, or default to extra permissive Network Contributor role
-   export IMAGE_CONTRIBUTOR_ROLE=$(IMAGE_CONTRIBUTOR_ROLE:-b24988ac-6180-42a0-ab88-20f7382dd24c)     # Use custom role, or default to extra permissive Contributor role
-   export RESOURCE_GROUP_IMAGE="rg-mycluster"
+   RESOURCE_GROUP_VNET="rg-enterprise-networking-spokes"
+   VNET_NAME="vnet-imagebuilder"
+   SNET_NAME="snet-imagebuilder"
+   VNET_LOCATION="eastus2"
+   NETWORK_CONTRIBUTOR_ROLE=$(NETWORK_CONTRIBUTOR_ROLE:-4d97b98b-1d4f-4787-a291-c67834d212e7) # Use custom role, or default to extra permissive Network Contributor role
+   IMAGE_CONTRIBUTOR_ROLE=$(IMAGE_CONTRIBUTOR_ROLE:-b24988ac-6180-42a0-ab88-20f7382dd24c)     # Use custom role, or default to extra permissive Contributor role
+   RESOURCE_GROUP_IMAGE="rg-mycluster"
 
    az deployment group create -g $RESOURCE_GROUP_AIB -f https://raw.githubusercontent.com/mspnp/aks-jumpbox-imagebuilder/main/azuredeploy.json -p buildInVnetResourceGroupName=${RESOURCE_GROUP_VNET} buildInVnetName=${VNET_NAME} buildInVnetSubnetName=${SNET_NAME} location=${VNET_LOCATION} imageBuilderNetworkingRoleGuid=${NETWORK_CONTRIBUTOR_ROLE} imageBuilderImageCreationRoleGuid=${IMAGE_CONTRIBUTOR_ROLE} imageDestinationResourceGroupName=${RESOURCE_GROUP_IMAGE} -n aibaksjumpboximgtemplate
    ```
@@ -213,20 +215,20 @@ az deployment group create -g $RESOURCE_GROUP_AIB -f azuredeploy.json -p "@azure
 
    And finally, your Managed Identity is also now an _Image Contributor_ (or _Contributor_ if you didn't create custom roles), on the resource group in which the managed VM image resource will be deployed to (`RESOURCE_GROUP_IMAGE`). Note: While we assigned this role in the prior ARM template, this specific role assignment can technically be assigned immediately before building the AKS image template. It's applied here for simplicity only, since we are immediately building the image in the next step.
 
-   Your image template is a _hidden_ resource in the resource group (`RESOURCE_GROUP_AIB`) containing the service's Managed Identity.
+   Your image template is a resource in the resource group (`RESOURCE_GROUP_AIB`) containing the service's Managed Identity.
 
 1. **Build your jump box image.**
 
    At this point, an VM image can now be constructed by AIB from the deployed image template deployed to the AIB resource group (`RESOURCE_GROUP_AIB`). Invoking the following command will kick off an image build, delivering the final image to the designated resource group defined above (`RESOURCE_GROUP_IMAGE`).
 
    ```bash
-   export IMAGE_TEMPLATE_NAME=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.imageTemplateName.value' -o tsv)
+   IMAGE_TEMPLATE_NAME=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.imageTemplateName.value' -o tsv)
 
    # This command may take up to 30 minutes to execute.
    az image builder run -g $RESOURCE_GROUP_AIB -n $IMAGE_TEMPLATE_NAME
    ```
 
-   During this process, if you check the `IT_` infrastructure resource group, you'll see the transient resources be created, and once the Packer VM is started, you'll start to see logs in the `packerlogs` container in the storage account created in this resource group.  Once this completes, you now have a custom VM Managed Image resource created in your designated resource group (`RESOURCE_GROUP_IMAGE`). The `IT_` infrastructure resource group will only contain a storage account, as all other transient compute was automatically deprovisioned.
+   During this process, if you check the `IT_` infrastructure resource group, you'll see the transient resources be created, and once the Packer VM is started, you'll start to see logs in the `packerlogs` container in the storage account created in this resource group. Once this completes, you now have a custom VM Managed Image resource created in your designated resource group (`RESOURCE_GROUP_IMAGE`). The `IT_` infrastructure resource group will only contain a storage account, as all other transient compute was automatically deprovisioned.
 
    If AIB service runs into any problems while executing, verify your network aligns with the specifications and also refer to the documented [troubleshooting steps](https://docs.microsoft.com/azure/virtual-machines/linux/image-builder-troubleshoot).
 
@@ -245,8 +247,8 @@ Now that you have a managed VM image designed for AKS jump box operations, you c
    The _Image Contributor_ (or _Contributor_ if not using custom roles) role assignment on the target resource group for the AIB service is only necessary while actively building an image. If you do not plan on building a new image immediately, consider removing the role assignment between AIB's Managed Identity and the destination resource group.
 
    ```bash
-   export AIB_MANAGED_IDENTITY=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResource.value.principalId' -o tsv)
-   export SUBSCRIPTION_ID=$(az account show --query 'id' -o tsv)
+   AIB_MANAGED_IDENTITY=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResource.value.principalId' -o tsv)
+   SUBSCRIPTION_ID=$(az account show --query 'id' -o tsv)
 
    az role assignment delete --assignee $AIB_MANAGED_IDENTITY --role $IMAGE_CONTRIBUTOR_ROLE --scope /subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP_IMAGE}
    ```
@@ -272,8 +274,8 @@ Now that you have a managed VM image designed for AKS jump box operations, you c
    If retaining the virtual network, then delete the _Azure Image Builder Service Network Joiner_ (or _Network Contributor_ if not using custom roles) role assignment on the virtual network. If deleting the virtual network, then you can simply remove the vnet and this role assignment will be removed automatically.
 
    ```bash
-   export AIB_MANAGED_IDENTITY=$(AIB_MANAGED_IDENTITY:-az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResource.value.principalId' -o tsv)
-   export VNET_ID=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.vnetResourceId.value' -o tsv)
+   AIB_MANAGED_IDENTITY=$(AIB_MANAGED_IDENTITY:-az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResource.value.principalId' -o tsv)
+   VNET_ID=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.vnetResourceId.value' -o tsv)
 
    az role assignment delete --assignee $AIB_MANAGED_IDENTITY --role $NETWORK_CONTRIBUTOR_ROLE --scope $VNET_ID
    ```
@@ -281,7 +283,7 @@ Now that you have a managed VM image designed for AKS jump box operations, you c
    Delete the Managed Identity. Note, deleting the Managed Identity does NOT remove role assignments to it. See the steps above for removing role assignments used by this identity if retaining the virtual network or virtual machine image longer than the Managed Identity.
 
    ```bash
-   export AIB_MANAGED_IDENTITY_ID=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResourceId.value' -o tsv)
+   AIB_MANAGED_IDENTITY_ID=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResourceId.value' -o tsv)
 
    az identity delete --ids $AIB_MANAGED_IDENTITY_ID
    ```
@@ -294,7 +296,7 @@ There is no cost for Azure Image Builder service directly; instead of the costs 
 
 ## :closed_lock_with_key: Security
 
-This jump box image and its creation process has not been fully hardened. For example, the jump box image is pulling package updates from Ubuntu and Microsoft public servers; additionally, Azure CLI, Helm, and Terraform are installed straight from the Internet. Ensure even processes like these adhere to your organizational policies; pulling updates from your organization's package servers, and storing well-known 3rd party dependencies in trusted locations. If all necessary resources have been brought "network-local" the NSG and Azure Firewall allowances can be made even tighter. Also apply any standard OS hardening procedures your organization requires for privileged access machines. A jump box is an attack vector that needs to be considered when evaluating any particular access solution.
+This jump box image and its creation process has not been hardened. For example, the jump box image is pulling package updates from Ubuntu and Microsoft public servers; additionally, Azure CLI, Helm, Terraform, etc are installed straight from the Internet. Ensure even processes like these adhere to your organizational policies; pulling updates from your organization's package servers, and storing well-known 3rd party dependencies in trusted locations. If all necessary resources have been brought "network-local" the NSG and Azure Firewall allowances can be made even tighter. Also apply any standard OS hardening procedures your organization requires for privileged access machines. A jump box is an attack vector that needs to be considered when evaluating any particular access solution.
 
 ## See also
 
