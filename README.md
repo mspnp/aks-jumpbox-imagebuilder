@@ -197,7 +197,7 @@ The Azure Image Builder service supports hosting the image building process in a
 
    ```bash
    BUILD_SNET_RESOURCEID="$(az network vnet subnet show -g rg-enterprise-networking-spokes --vnet-name vnet-imagebuilder -n snet-imagebuilder --query id -o tsv)"
-   VNET_LOCATION="eastus2"
+   VNET_LOCATION="$(az network vnet show -g rg-enterprise-networking-spokes -n vnet-imagebuilder ---query location -o tsv)"
    NETWORK_CONTRIBUTOR_ROLE=$(NETWORK_CONTRIBUTOR_ROLE:-4d97b98b-1d4f-4787-a291-c67834d212e7) # Use custom role, or default to extra permissive Network Contributor role
    IMAGE_CONTRIBUTOR_ROLE=$(IMAGE_CONTRIBUTOR_ROLE:-b24988ac-6180-42a0-ab88-20f7382dd24c)     # Use custom role, or default to extra permissive Contributor role
    RESOURCE_GROUP_IMAGE="rg-mycluster"
