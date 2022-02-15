@@ -186,7 +186,7 @@ The Azure Image Builder service supports hosting the image building process in a
    Update the values in `azuredeploy.parameters.json` to align with your environment. Specifically you'll be setting parameter values with the target subnet (from Step 1 above) in which the image will be built from within, what RBAC roles the service's Managed Identity will receive, and where the built image resource will be distributed to.
 
    ```bash
-   az deployment group create -g $RESOURCE_GROUP_AIB -f azuredeploy.json -p "@azuredeploy.parameters.json" -n aibaksjumpboximgtemplate
+   az deployment group create -g $RESOURCE_GROUP_AIB -f azuredeploy.bicep -p "@azuredeploy.parameters.json" -n aibaksjumpboximgtemplate
 
    RESOURCE_GROUP_IMAGE=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.parameters.imageDestinationResourceGroupName.value' -o tsv)
    ```
@@ -196,15 +196,13 @@ The Azure Image Builder service supports hosting the image building process in a
    Deploy without parameters file, setting the values below as appropriate. The first our are target virtual network values, the next two are the custom role ids (or fallbacks if custom roles are not able to be used), and the final is the resource group you wish the built managed image resource to be deployed to.
 
    ```bash
-   RESOURCE_GROUP_VNET="rg-enterprise-networking-spokes"
-   VNET_NAME="vnet-imagebuilder"
-   SNET_NAME="snet-imagebuilder"
+   BUILD_SNET_RESOURCEID="$(az network vnet subnet show -g rg-enterprise-networking-spokes --vnet-name vnet-imagebuilder -n snet-imagebuilder --query id -o tsv)"
    VNET_LOCATION="eastus2"
    NETWORK_CONTRIBUTOR_ROLE=$(NETWORK_CONTRIBUTOR_ROLE:-4d97b98b-1d4f-4787-a291-c67834d212e7) # Use custom role, or default to extra permissive Network Contributor role
    IMAGE_CONTRIBUTOR_ROLE=$(IMAGE_CONTRIBUTOR_ROLE:-b24988ac-6180-42a0-ab88-20f7382dd24c)     # Use custom role, or default to extra permissive Contributor role
    RESOURCE_GROUP_IMAGE="rg-mycluster"
 
-   az deployment group create -g $RESOURCE_GROUP_AIB -f https://raw.githubusercontent.com/mspnp/aks-jumpbox-imagebuilder/main/azuredeploy.json -p buildInVnetResourceGroupName=${RESOURCE_GROUP_VNET} buildInVnetName=${VNET_NAME} buildInVnetSubnetName=${SNET_NAME} location=${VNET_LOCATION} imageBuilderNetworkingRoleGuid=${NETWORK_CONTRIBUTOR_ROLE} imageBuilderImageCreationRoleGuid=${IMAGE_CONTRIBUTOR_ROLE} imageDestinationResourceGroupName=${RESOURCE_GROUP_IMAGE} -n aibaksjumpboximgtemplate
+   az deployment group create -g $RESOURCE_GROUP_AIB -f azuredeploy.bicep -p buildInSubnetResourceId=${BUILD_SNET_RESOURCEID} location=${VNET_LOCATION} imageBuilderNetworkingRoleGuid=${NETWORK_CONTRIBUTOR_ROLE} imageBuilderImageCreationRoleGuid=${IMAGE_CONTRIBUTOR_ROLE} imageDestinationResourceGroupName=${RESOURCE_GROUP_IMAGE} -n aibaksjumpboximgtemplate
    ```
 
 1. **Review deployment results.**
