@@ -174,9 +174,8 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
         name: 'Install Azure CLI extensions'
         inline: [
           'echo "Starting AZ CLI extension add"'
-          'echo "$(az --version)"'
           'sudo az extension add -n aks-preview'
-          'echo "$(az --version)"'
+          'az --version'
           'echo "Completed AZ CLI extension add"'
         ]
       }
@@ -186,7 +185,7 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
         inline: [
           'echo "Starting kubectl install"'
           'sudo az aks install-cli'
-          'echo "$(kubectl version --client=true)"'
+          'kubectl version --client=true'
           'echo "Completed kubectl install"'
         ]
       }
@@ -196,6 +195,7 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
         inline: [
           'echo "Starting helm install"'
           'curl -s https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | sudo bash'
+          'helm version'
           'echo "Completed helm install"'
         ]
       }
@@ -205,6 +205,7 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
         inline: [
           'echo "Starting flux install"'
           'curl -s https://fluxcd.io/install.sh | sudo bash'
+          'flux --version'
           'echo "Completed flux install"'
         ]
       }
