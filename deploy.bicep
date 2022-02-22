@@ -165,6 +165,7 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
         inline: [
           'echo "Starting Azure CLI install"'
           'curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash'
+          'echo "$(az --version)"'
           'echo "Completed Azure CLI install"'
         ]
       }
@@ -173,7 +174,9 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
         name: 'Install Azure CLI extensions'
         inline: [
           'echo "Starting AZ CLI extension add"'
+          'echo "$(az --version)"'
           'sudo az extension add -n aks-preview'
+          'echo "$(az --version)"'
           'echo "Completed AZ CLI extension add"'
         ]
       }
@@ -183,6 +186,7 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
         inline: [
           'echo "Starting kubectl install"'
           'sudo az aks install-cli'
+          'echo "$(kubectl version --client=true)"'
           'echo "Completed kubectl install"'
         ]
       }
