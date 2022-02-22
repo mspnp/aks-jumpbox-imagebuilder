@@ -147,8 +147,8 @@ The Azure Image Builder service supports hosting the image building process in a
    ```bash
    az deployment sub create -f createsubscriptionroles.bicep -l centralus -n aibcustomroles
 
-   NETWORK_CONTRIBUTOR_ROLE=$(az deployment sub show -n aibcustomroles --query 'properties.outputs.roleResourceIds.value.customImageBuilderNetworkingRole.guid' -o tsv)
-   IMAGE_CONTRIBUTOR_ROLE=$(az deployment sub show -n aibcustomroles --query 'properties.outputs.roleResourceIds.value.customImageBuilderImageCreationRole.guid' -o tsv)
+   export NETWORK_CONTRIBUTOR_ROLE=$(az deployment sub show -n aibcustomroles --query 'properties.outputs.roleResourceIds.value.customImageBuilderNetworkingRole.guid' -o tsv)
+   export IMAGE_CONTRIBUTOR_ROLE=$(az deployment sub show -n aibcustomroles --query 'properties.outputs.roleResourceIds.value.customImageBuilderImageCreationRole.guid' -o tsv)
    ```
 
 1. **Select (or create) the Azure Image Builder resource group.**
@@ -158,7 +158,7 @@ The Azure Image Builder service supports hosting the image building process in a
    Identify the resource group name.
 
    ```bash
-   RESOURCE_GROUP_AIB=rg-imagebuilders
+   export RESOURCE_GROUP_AIB=rg-imagebuilders
    ```
 
    Create the resource group, if not already existing. The location identified here will not matter.
@@ -188,7 +188,7 @@ The Azure Image Builder service supports hosting the image building process in a
    ```bash
    az deployment group create -g $RESOURCE_GROUP_AIB -f azuredeploy.bicep -p "@azuredeploy.parameters.json" -n aibaksjumpboximgtemplate
 
-   RESOURCE_GROUP_IMAGE=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.parameters.imageDestinationResourceGroupName.value' -o tsv)
+   export RESOURCE_GROUP_IMAGE=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.parameters.imageDestinationResourceGroupName.value' -o tsv)
    ```
 
    Option 2:
@@ -196,11 +196,11 @@ The Azure Image Builder service supports hosting the image building process in a
    Deploy without parameters file, setting the values below as appropriate. The first our are target virtual network values, the next two are the custom role ids (or fallbacks if custom roles are not able to be used), and the final is the resource group you wish the built managed image resource to be deployed to.
 
    ```bash
-   BUILD_SNET_RESOURCEID="$(az network vnet subnet show -g rg-enterprise-networking-spokes --vnet-name vnet-imagebuilder -n snet-imagebuilder --query id -o tsv)"
-   VNET_LOCATION="$(az network vnet show -g rg-enterprise-networking-spokes -n vnet-imagebuilder --query location -o tsv)"
-   NETWORK_CONTRIBUTOR_ROLE=$(NETWORK_CONTRIBUTOR_ROLE:-4d97b98b-1d4f-4787-a291-c67834d212e7) # Use custom role, or default to extra permissive Network Contributor role
-   IMAGE_CONTRIBUTOR_ROLE=$(IMAGE_CONTRIBUTOR_ROLE:-b24988ac-6180-42a0-ab88-20f7382dd24c)     # Use custom role, or default to extra permissive Contributor role
-   RESOURCE_GROUP_IMAGE="rg-mycluster"
+   export BUILD_SNET_RESOURCEID="$(az network vnet subnet show -g rg-enterprise-networking-spokes --vnet-name vnet-imagebuilder -n snet-imagebuilder --query id -o tsv)"
+   export VNET_LOCATION="$(az network vnet show -g rg-enterprise-networking-spokes -n vnet-imagebuilder --query location -o tsv)"
+   export NETWORK_CONTRIBUTOR_ROLE=$(NETWORK_CONTRIBUTOR_ROLE:-4d97b98b-1d4f-4787-a291-c67834d212e7) # Use custom role, or default to extra permissive Network Contributor role
+   export IMAGE_CONTRIBUTOR_ROLE=$(IMAGE_CONTRIBUTOR_ROLE:-b24988ac-6180-42a0-ab88-20f7382dd24c)     # Use custom role, or default to extra permissive Contributor role
+   export RESOURCE_GROUP_IMAGE="rg-mycluster"
 
    az deployment group create -g $RESOURCE_GROUP_AIB -f azuredeploy.bicep -p buildInSubnetResourceId=${BUILD_SNET_RESOURCEID} location=${VNET_LOCATION} imageBuilderNetworkingRoleGuid=${NETWORK_CONTRIBUTOR_ROLE} imageBuilderImageCreationRoleGuid=${IMAGE_CONTRIBUTOR_ROLE} imageDestinationResourceGroupName=${RESOURCE_GROUP_IMAGE} -n aibaksjumpboximgtemplate
    ```
@@ -220,7 +220,7 @@ The Azure Image Builder service supports hosting the image building process in a
    At this point, an VM image can now be constructed by AIB from the deployed image template deployed to the AIB resource group (`RESOURCE_GROUP_AIB`). Invoking the following command will kick off an image build, delivering the final image to the designated resource group defined above (`RESOURCE_GROUP_IMAGE`).
 
    ```bash
-   IMAGE_TEMPLATE_NAME=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.imageTemplateName.value' -o tsv)
+   export IMAGE_TEMPLATE_NAME=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.imageTemplateName.value' -o tsv)
 
    # This command may take up to 30 minutes to execute.
    az image builder run -g $RESOURCE_GROUP_AIB -n $IMAGE_TEMPLATE_NAME
@@ -245,8 +245,8 @@ Now that you have a managed VM image designed for AKS jump box operations, you c
    The _Image Contributor_ (or _Contributor_ if not using custom roles) role assignment on the target resource group for the AIB service is only necessary while actively building an image. If you do not plan on building a new image immediately, consider removing the role assignment between AIB's Managed Identity and the destination resource group.
 
    ```bash
-   AIB_MANAGED_IDENTITY=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResource.value.principalId' -o tsv)
-   SUBSCRIPTION_ID=$(az account show --query 'id' -o tsv)
+   export AIB_MANAGED_IDENTITY=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResource.value.principalId' -o tsv)
+   export SUBSCRIPTION_ID=$(az account show --query 'id' -o tsv)
 
    az role assignment delete --assignee $AIB_MANAGED_IDENTITY --role $IMAGE_CONTRIBUTOR_ROLE --scope /subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP_IMAGE}
    ```
@@ -272,8 +272,8 @@ Now that you have a managed VM image designed for AKS jump box operations, you c
    If retaining the virtual network, then delete the _Azure Image Builder Service Network Joiner_ (or _Network Contributor_ if not using custom roles) role assignment on the virtual network. If deleting the virtual network, then you can simply remove the vnet and this role assignment will be removed automatically.
 
    ```bash
-   AIB_MANAGED_IDENTITY=$(AIB_MANAGED_IDENTITY:-az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResource.value.principalId' -o tsv)
-   VNET_ID=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.vnetResourceId.value' -o tsv)
+   export AIB_MANAGED_IDENTITY=$(AIB_MANAGED_IDENTITY:-az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResource.value.principalId' -o tsv)
+   export VNET_ID=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.vnetResourceId.value' -o tsv)
 
    az role assignment delete --assignee $AIB_MANAGED_IDENTITY --role $NETWORK_CONTRIBUTOR_ROLE --scope $VNET_ID
    ```
@@ -281,7 +281,7 @@ Now that you have a managed VM image designed for AKS jump box operations, you c
    Delete the Managed Identity. Note, deleting the Managed Identity does NOT remove role assignments to it. See the steps above for removing role assignments used by this identity if retaining the virtual network or virtual machine image longer than the Managed Identity.
 
    ```bash
-   AIB_MANAGED_IDENTITY_ID=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResourceId.value' -o tsv)
+   export AIB_MANAGED_IDENTITY_ID=$(az deployment group show -g $RESOURCE_GROUP_AIB -n aibaksjumpboximgtemplate --query 'properties.outputs.builderIdentityResourceId.value' -o tsv)
 
    az identity delete --ids $AIB_MANAGED_IDENTITY_ID
    ```
