@@ -141,10 +141,10 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
         type: 'Shell'
         name: 'Update Installed Packages'
         inline: [
-          'echo "Starting "apt-get update/upgrade"'
+          'echo "Starting apt-get update/upgrade"'
           'sudo apt-get -yq update'
           '#sudo apt-get -yq upgrade'
-          'echo "Completed "apt-get update/upgrade"'
+          'echo "Completed apt-get update/upgrade"'
         ]
       }
       {
