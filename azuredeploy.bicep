@@ -165,7 +165,6 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
         inline: [
           'echo "Starting Azure CLI install"'
           'curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash'
-          'echo "$(az --version)"'
           'echo "Completed Azure CLI install"'
         ]
       }
