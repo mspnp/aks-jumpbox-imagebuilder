@@ -2,14 +2,8 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "buildInVnetResourceGroupName": {
-            "value": "rg-enterprise-networking-spokes"
-        },
-        "buildInVnetName": {
-            "value": "vnet-imagebuilder"
-        },
-        "buildInVnetSubnetName": {
-            "value": "snet-imagebuilder"
+        "buildInSubnetResourceId": {
+            "value": "/subscriptions/[id]/resourceGroups/rg-enterprise-networking-spokes/providers/Microsoft.Network/virtualNetworks/vnet-imagebuilder/subnets/snet-imagebuilder"
         },
         "location": {
             "value": "eastus2"
