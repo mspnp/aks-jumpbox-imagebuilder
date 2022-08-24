@@ -99,6 +99,7 @@ module applyAibNetworkingRoleToBuilderVirtualNetwork 'modules/aibNetworkRoleAssi
 
 @description('This is the image spec for our general purpose AKS jump box. This template can be used to build VM images as needed.')
 resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-01' = {
+#disable-next-line use-stable-resource-identifiers
   name: imageTemplateName
   location: location
   dependsOn: [
