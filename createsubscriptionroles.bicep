@@ -49,11 +49,11 @@ resource imageBuilderImageCreationRoleDefinition 'Microsoft.Authorization/roleDe
 
 output roleResourceIds object = {
   customImageBuilderImageCreationRole: {
-    guid: '${imageBuilderImageCreationRoleDefinition.name}'
-    resourceId: '${imageBuilderImageCreationRoleDefinition.id}'
+    guid: imageBuilderImageCreationRoleDefinition.name
+    resourceId: imageBuilderImageCreationRoleDefinition.id
   }
   customImageBuilderNetworkingRole: {
-    guid: '${imageBuilderNetworkingRoleDefinition.name}'
-    resourceId: '${imageBuilderNetworkingRoleDefinition.id}'
+    guid: imageBuilderNetworkingRoleDefinition.name
+    resourceId: imageBuilderNetworkingRoleDefinition.id
   }
 }
