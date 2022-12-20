@@ -201,16 +201,6 @@ resource imgtJumpBoxSpec 'Microsoft.VirtualMachineImages/imageTemplates@2021-10-
       }
       {
         type: 'Shell'
-        name: 'Install flux'
-        inline: [
-          'echo "Starting flux install"'
-          'curl -s https://fluxcd.io/install.sh | sudo bash'
-          'flux --version'
-          'echo "Completed flux install"'
-        ]
-      }
-      {
-        type: 'Shell'
         name: 'Install workload identity tooling'
         inline: [
           'echo "Starting k8s workload identity CLI install"'
