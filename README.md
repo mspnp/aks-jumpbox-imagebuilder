@@ -19,7 +19,6 @@ While these instructions are targeting the building of a general-purpose AKS jum
 * [Azure CLI](https://learn.microsoft.com/cli/azure/what-is-azure-cli)
 * [kubectl](https://kubernetes.io/docs/reference/kubectl/overview/) and [kubelogin](https://github.com/Azure/kubelogin)
 * [Helm CLI](https://helm.sh)
-* [Flux v2 CLI](https://fluxcd.io)
 * [Kubnernetes Azure AD Workload Identity CLI](https://azure.github.io/azure-workload-identity)
 * [Open Service Mesh CLI](https://openservicemesh.io)
 * HashiCorp [Terraform CLI](https://www.terraform.io)
@@ -88,12 +87,11 @@ The Azure Image Builder service supports hosting the image building process in a
     | HTTPS:`443`   | `azurecliprod.blob.core.windows.net` | Allows Packer VM to get az cli install script |
     | HTTPS:`443`   | `aka.ms`                             | Allows Packer VM to get az cli install script |
     | HTTPS:`443`   | `storage.googleapis.com`             | Allows Packer VM to get kubectl               |
-    | HTTPS:`443`   | `api.github.com`                     | Allows Packer VM to get kubelogin and flux    |
-    | HTTPS:`443`   | `github-releases.githubusercontent.com` | Allows Packer VM to get kubelogin, flux, osm, helm |
+    | HTTPS:`443`   | `api.github.com`                     | Allows Packer VM to get kubelogin             |
+    | HTTPS:`443`   | `github-releases.githubusercontent.com` | Allows Packer VM to get kubelogin, osm, helm |
     | HTTPS:`443`   | `github.com`                         | Allows Packer VM to get kubelogin and osm     |
     | HTTPS:`443`   | `raw.githubusercontent.com`          | Allows Packer VM to get helm install script   |
     | HTTPS:`443`   | `get.helm.sh`                        | Allows Packer VM to get helm                  |
-    | HTTPS:`443`   | `fluxcd.io`                          | Allows Packer VM to get flux                  |
     | HTTPS:`443`   | `releases.hashicorp.com`             | Allows Packer VM to get terraform             |
     | _as needed_   | _as needed_                          | Any endpoints your image's configuration specification uses as part of the build process. |
 
