@@ -19,7 +19,7 @@ While these instructions are targeting the building of a general-purpose AKS jum
 * [Azure CLI](https://learn.microsoft.com/cli/azure/what-is-azure-cli)
 * [kubectl](https://kubernetes.io/docs/reference/kubectl/overview/) and [kubelogin](https://github.com/Azure/kubelogin)
 * [Helm CLI](https://helm.sh)
-* [Kubnernetes Azure AD Workload Identity CLI](https://azure.github.io/azure-workload-identity)
+* [Kubnernetes Azure Workload Identity CLI](https://azure.github.io/azure-workload-identity/docs/installation/azwi.html)
 * [Open Service Mesh CLI](https://openservicemesh.io)
 * HashiCorp [Terraform CLI](https://www.terraform.io)
 
