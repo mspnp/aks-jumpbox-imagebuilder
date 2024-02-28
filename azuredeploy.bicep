@@ -6,9 +6,9 @@ targetScope = 'resourceGroup'
 @minLength(120)
 param buildInSubnetResourceId string
 
-@description('The location of the Virtual Network in which image builds will take place.')
+@description('The location of the Virtual Network in which image builds will take place. For increased reliability, this should also be the same location as the resource group for this deployment.')
 @minLength(1)
-param location string
+param location string = resourceGroup().location
 
 @description('Ideally the custom Azure Image Builder Service Network Joiner role, otherwise should be Network Contributor role guid.')
 @minLength(36)
