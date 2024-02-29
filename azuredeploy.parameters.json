@@ -3,10 +3,8 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "buildInSubnetResourceId": {
-            "value": "/subscriptions/[id]/resourceGroups/rg-enterprise-networking-spokes/providers/Microsoft.Network/virtualNetworks/vnet-imagebuilder/subnets/snet-imagebuilder"
-        },
-        "location": {
-            "value": "eastus2"
+            "value": "/subscriptions/[id]/resourceGroups/rg-enterprise-networking-spokes-eastus2/providers/Microsoft.Network/virtualNetworks/vnet-imagebuilder/subnets/snet-imagebuilder"
+
         },
         "imageBuilderNetworkingRoleGuid": {
             "value": "Put NETWORK_CONTRIBUTOR_ROLE or 4d97b98b-1d4f-4787-a291-c67834d212e7 Here" // Must use "Network Contributor" (4d97b98b-1d4f-4787-a291-c67834d212e7) if custom role not defined
